@@ -37,8 +37,14 @@ export default function DocumentList({
   accessLevel = 'owner'
 }) {
   // Support backward compatibility - if folders prop is used, split it
-  const actualOwnedFolders = ownedFolders.length > 0 ? ownedFolders : folders.filter(f => f.access_level === 'owner');
-  const actualSharedFolders = sharedFolders.length > 0 ? sharedFolders : folders.filter(f => f.access_level !== 'owner');
+  const actualOwnedFolders = ownedFolders.length > 0 ? ownedFolders : folders.filter(f => {
+    const accessLvl = f.accessLevel || f.access_level || f.permissionLevel;
+    return accessLvl === 'owner';
+  });
+  const actualSharedFolders = sharedFolders.length > 0 ? sharedFolders : folders.filter(f => {
+    const accessLvl = f.accessLevel || f.access_level || f.permissionLevel;
+    return accessLvl && accessLvl !== 'owner';
+  });
   const [actionLoading, setActionLoading] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'detail'
 
