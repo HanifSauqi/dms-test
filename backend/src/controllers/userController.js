@@ -1,0 +1,267 @@
+const bcrypt = require('bcryptjs');
+const pool = require('../utils/database');
+const { successResponse, errorResponse } = require('../utils/response');
+const authConfig = require('../config/auth.config');
+
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Password validation
+const validatePassword = (password) => {
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number' };
+  }
+  return { valid: true };
+};
+
+/**
+ * Create new user (superadmin only)
+ */
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role = 'user' } = req.body;
+
+    // Input validation
+    if (!name || !email || !password) {
+      return errorResponse(res, 'Name, email, and password are required', 400);
+    }
+
+    // Validate name length
+    if (name.trim().length < 2 || name.length > 100) {
+      return errorResponse(res, 'Name must be between 2 and 100 characters', 400);
+    }
+
+    // Validate email format
+    if (!EMAIL_REGEX.test(email)) {
+      return errorResponse(res, 'Invalid email format', 400);
+    }
+
+    // Validate role
+    if (!['user', 'superadmin'].includes(role)) {
+      return errorResponse(res, 'Role must be either "user" or "superadmin"', 400);
+    }
+
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return errorResponse(res, passwordValidation.message, 400);
+    }
+
+    // Check if user exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      [normalizedEmail]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return errorResponse(res, 'User with this email already exists', 409);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds);
+
+    // Create user with specified role
+    const newUser = await pool.query(
+      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, created_at',
+      [name.trim(), normalizedEmail, hashedPassword, role]
+    );
+
+    const user = newUser.rows[0];
+
+    successResponse(res, 'User created successfully', {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.created_at
+      }
+    }, 201);
+
+  } catch (error) {
+    console.error('Create user error:', error);
+    errorResponse(res, 'Failed to create user', 500, error.message);
+  }
+};
+
+/**
+ * Get all users (superadmin only)
+ */
+const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+    );
+
+    successResponse(res, 'Users retrieved successfully', {
+      users: result.rows,
+      total: result.rows.length
+    });
+
+  } catch (error) {
+    console.error('Get users error:', error);
+    errorResponse(res, 'Failed to retrieve users', 500, error.message);
+  }
+};
+
+/**
+ * Get single user by ID (superadmin only)
+ */
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    successResponse(res, 'User retrieved successfully', {
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Get user error:', error);
+    errorResponse(res, 'Failed to retrieve user', 500, error.message);
+  }
+};
+
+/**
+ * Update user (superadmin only)
+ */
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role } = req.body;
+
+    // Validate at least one field is provided
+    if (!name && !email && !role) {
+      return errorResponse(res, 'At least one field (name, email, or role) must be provided', 400);
+    }
+
+    // Check if user exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (existingUser.rows.length === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    let paramCounter = 1;
+
+    if (name) {
+      if (name.trim().length < 2 || name.length > 100) {
+        return errorResponse(res, 'Name must be between 2 and 100 characters', 400);
+      }
+      updates.push(`name = $${paramCounter++}`);
+      values.push(name.trim());
+    }
+
+    if (email) {
+      if (!EMAIL_REGEX.test(email)) {
+        return errorResponse(res, 'Invalid email format', 400);
+      }
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Check if email is already used by another user
+      const emailCheck = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [normalizedEmail, id]
+      );
+
+      if (emailCheck.rows.length > 0) {
+        return errorResponse(res, 'Email is already used by another user', 409);
+      }
+
+      updates.push(`email = $${paramCounter++}`);
+      values.push(normalizedEmail);
+    }
+
+    if (role) {
+      if (!['user', 'superadmin'].includes(role)) {
+        return errorResponse(res, 'Role must be either "user" or "superadmin"', 400);
+      }
+      updates.push(`role = $${paramCounter++}`);
+      values.push(role);
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCounter}
+      RETURNING id, name, email, role, created_at
+    `;
+
+    const result = await pool.query(query, values);
+
+    successResponse(res, 'User updated successfully', {
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Update user error:', error);
+    errorResponse(res, 'Failed to update user', 500, error.message);
+  }
+};
+
+/**
+ * Delete user (superadmin only)
+ */
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting yourself
+    if (parseInt(id) === req.user.id) {
+      return errorResponse(res, 'You cannot delete your own account', 400);
+    }
+
+    // Check if user exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (existingUser.rows.length === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+
+    successResponse(res, 'User deleted successfully');
+
+  } catch (error) {
+    console.error('Delete user error:', error);
+    errorResponse(res, 'Failed to delete user', 500, error.message);
+  }
+};
+
+module.exports = {
+  createUser,
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser
+};
