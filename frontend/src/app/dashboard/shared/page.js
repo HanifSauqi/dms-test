@@ -249,8 +249,8 @@ export default function SharedPage() {
         setShowDocumentLabels(true);
         break;
       case 'open':
-        // Navigate to shared folder
-        router.push(`/dashboard?folderId=${item.id}`);
+        // Navigate to shared folder di halaman My Files
+        router.push(`/dashboard/files?folderId=${item.id}`);
         break;
     }
   };
@@ -258,7 +258,8 @@ export default function SharedPage() {
   // Handle folder/document click
   const handleItemClick = (item, type) => {
     if (type === 'folder') {
-      router.push(`/dashboard?folderId=${item.id}`);
+      // Navigate ke My Files page dengan folderId dari shared folder
+      router.push(`/dashboard/files?folderId=${item.id}`);
     } else {
       setSelectedDocument(item);
       setShowFileViewer(true);

@@ -120,6 +120,7 @@ class DocumentService extends BaseService {
 
     const actualFolderId = folderId === "null" || folderId === null ? null : folderId;
 
+    // Modified query to include shared folders
     let query = `
       SELECT DISTINCT d.id, d.title, d.file_name, d.file_path, d.extracted_content,
         d.folder_id, d.owner_id, d.created_at, d.updated_at,
@@ -132,7 +133,11 @@ class DocumentService extends BaseService {
       LEFT JOIN folders f ON d.folder_id = f.id
       LEFT JOIN document_labels dl ON d.id = dl.document_id
       LEFT JOIN labels l ON dl.label_id = l.id
-      WHERE d.owner_id = $1
+      LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      WHERE (
+        d.owner_id = $1
+        OR (fp.user_id = $1 AND fp.permission_level IN ('read', 'write', 'admin'))
+      )
     `;
 
     const params = [userId];
@@ -169,12 +174,17 @@ class DocumentService extends BaseService {
 
     const result = await pool.query(query, params);
 
+    // Modified count query to include shared folders
     let countQuery = `
       SELECT COUNT(DISTINCT d.id) as total
       FROM documents d
       LEFT JOIN document_labels dl ON d.id = dl.document_id
       LEFT JOIN labels l ON dl.label_id = l.id
-      WHERE d.owner_id = $1
+      LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      WHERE (
+        d.owner_id = $1
+        OR (fp.user_id = $1 AND fp.permission_level IN ('read', 'write', 'admin'))
+      )
     `;
 
     const countParams = [userId];
