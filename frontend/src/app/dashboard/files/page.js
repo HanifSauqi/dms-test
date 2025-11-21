@@ -345,6 +345,13 @@ export default function DashboardPage() {
     return filtered;
   }, [documents, searchTerm, selectedLabels]);
 
+  // Separate folders into owned and shared
+  const { ownedFolders, sharedFolders } = useMemo(() => {
+    const owned = folders.filter(folder => folder.access_level === 'owner');
+    const shared = folders.filter(folder => folder.access_level !== 'owner');
+    return { ownedFolders: owned, sharedFolders: shared };
+  }, [folders]);
+
   return (
     <>
       {/* Breadcrumbs */}
@@ -407,7 +414,8 @@ export default function DashboardPage() {
         {/* Document List */}
         <DocumentList
           documents={filteredDocuments}
-          folders={folders}
+          ownedFolders={ownedFolders}
+          sharedFolders={sharedFolders}
           loading={loading}
           onFolderClick={handleFolderClick}
           onFolderEdit={handleFolderEdit}

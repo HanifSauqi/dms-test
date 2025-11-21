@@ -21,6 +21,8 @@ import { showSuccess, showError } from '@/utils/toast';
 export default function DocumentList({
   documents = [],
   folders = [],
+  ownedFolders = [],
+  sharedFolders = [],
   loading = false,
   onFolderClick,
   onFolderEdit,
@@ -34,6 +36,9 @@ export default function DocumentList({
   onDocumentDetails,
   accessLevel = 'owner'
 }) {
+  // Support backward compatibility - if folders prop is used, split it
+  const actualOwnedFolders = ownedFolders.length > 0 ? ownedFolders : folders.filter(f => f.access_level === 'owner');
+  const actualSharedFolders = sharedFolders.length > 0 ? sharedFolders : folders.filter(f => f.access_level !== 'owner');
   const [actionLoading, setActionLoading] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'detail'
 
@@ -181,7 +186,7 @@ export default function DocumentList({
     );
   }
 
-  if (documents.length === 0 && folders.length === 0) {
+  if (documents.length === 0 && actualOwnedFolders.length === 0 && actualSharedFolders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <DocumentIcon className="w-16 h-16 text-gray-400 mb-4" />
@@ -191,10 +196,178 @@ export default function DocumentList({
     );
   }
 
+  // Render folder section helper
+  const renderFolderSection = (folderList, title, folderAccessLevel) => {
+    if (folderList.length === 0) return null;
+
+    return (
+      <div className="mb-8">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          {title} ({folderList.length})
+        </h3>
+
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8">
+            {folderList.map((folder) => (
+              <div
+                key={folder.id}
+                className="group flex flex-col items-center cursor-pointer"
+              >
+                <div
+                  className="relative flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                  onClick={() => onFolderClick(folder)}
+                >
+                  <FolderIcon className="w-20 h-20 text-orange-600 mb-1" />
+                  <p className="text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2">
+                    {folder.name}
+                  </p>
+                  <div
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu
+                      trigger={
+                        <button className="p-1 rounded-full hover:bg-gray-200 bg-white shadow-sm transition-colors">
+                          <EllipsisVerticalIcon className="w-4 h-4 text-gray-600" />
+                        </button>
+                      }
+                      options={[
+                        {
+                          label: 'Rename',
+                          icon: PencilIcon,
+                          onClick: () => handleFolderAction('edit', folder),
+                          disabled: actionLoading === `edit-folder-${folder.id}`
+                        },
+                        ...(folderAccessLevel === 'owner' ? [{
+                          label: 'Share',
+                          icon: ShareIcon,
+                          onClick: () => handleFolderAction('share', folder),
+                          disabled: actionLoading === `share-folder-${folder.id}`
+                        }] : []),
+                        ...(folderAccessLevel === 'owner' ? [{
+                          label: 'Delete',
+                          icon: TrashIcon,
+                          onClick: () => handleFolderAction('delete', folder),
+                          disabled: actionLoading === `delete-folder-${folder.id}`,
+                          className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                        }] : [])
+                      ]}
+                      onOptionClick={(option) => {
+                        console.log('📁 FolderList: onOptionClick received:', option.label);
+                        if (option.onClick) {
+                          console.log('📁 FolderList: Calling option.onClick()');
+                          option.onClick();
+                        } else {
+                          console.error('❌ FolderList: option.onClick is not defined!');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Detail View */}
+        {viewMode === 'detail' && (
+          <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Items
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
+                {folderList.map((folder) => (
+                  <tr
+                    key={folder.id}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => onFolderClick(folder)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <FolderIcon className="w-6 h-6 text-orange-600 mr-3" />
+                        <span className="text-sm font-medium text-gray-900">{folder.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">{folder.documentCount || 0} items</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">
+                        {folder.createdAt ? formatDate(folder.createdAt) : '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative inline-block">
+                        <DropdownMenu
+                          trigger={
+                            <button className="p-1 rounded-full hover:bg-gray-200 transition-colors">
+                              <EllipsisVerticalIcon className="w-5 h-5 text-gray-500" />
+                            </button>
+                          }
+                          options={[
+                            {
+                              label: 'Rename',
+                              icon: PencilIcon,
+                              onClick: () => handleFolderAction('edit', folder),
+                              disabled: actionLoading === `edit-folder-${folder.id}`
+                            },
+                            ...(folderAccessLevel === 'owner' ? [{
+                              label: 'Share',
+                              icon: ShareIcon,
+                              onClick: () => handleFolderAction('share', folder),
+                              disabled: actionLoading === `share-folder-${folder.id}`
+                            }] : []),
+                            ...(folderAccessLevel === 'owner' ? [{
+                              label: 'Delete',
+                              icon: TrashIcon,
+                              onClick: () => handleFolderAction('delete', folder),
+                              disabled: actionLoading === `delete-folder-${folder.id}`,
+                              className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                            }] : [])
+                          ]}
+                          onOptionClick={(option) => {
+                            console.log('📁 FolderList: onOptionClick received:', option.label);
+                            if (option.onClick) {
+                              console.log('📁 FolderList: Calling option.onClick()');
+                              option.onClick();
+                            } else {
+                              console.error('❌ FolderList: option.onClick is not defined!');
+                            }
+                          }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       {/* View Mode Toggle */}
-      {(folders.length > 0 || documents.length > 0) && (
+      {(actualOwnedFolders.length > 0 || actualSharedFolders.length > 0 || documents.length > 0) && (
         <div className="flex justify-end mb-4">
           <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
             <button
@@ -223,169 +396,11 @@ export default function DocumentList({
         </div>
       )}
 
-      {/* Folders Section */}
-      {folders.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">
-            Folder ({folders.length})
-          </h3>
+      {/* My Folders Section */}
+      {renderFolderSection(actualOwnedFolders, 'My Folder', 'owner')}
 
-          {/* Grid View */}
-          {viewMode === 'grid' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8">
-              {folders.map((folder) => (
-                <div
-                  key={folder.id}
-                  className="group flex flex-col items-center cursor-pointer"
-                >
-                  <div
-                    className="relative flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
-                    onClick={() => onFolderClick(folder)}
-                  >
-                    <FolderIcon className="w-20 h-20 text-orange-600 mb-1" />
-                    <p className="text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2">
-                      {folder.name}
-                    </p>
-                    <div
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenu
-                        trigger={
-                          <button className="p-1 rounded-full hover:bg-gray-200 bg-white shadow-sm transition-colors">
-                            <EllipsisVerticalIcon className="w-4 h-4 text-gray-600" />
-                          </button>
-                        }
-                        options={[
-                          {
-                            label: 'Rename',
-                            icon: PencilIcon,
-                            onClick: () => handleFolderAction('edit', folder),
-                            disabled: actionLoading === `edit-folder-${folder.id}`
-                          },
-                          ...(accessLevel === 'owner' ? [{
-                            label: 'Share',
-                            icon: ShareIcon,
-                            onClick: () => handleFolderAction('share', folder),
-                            disabled: actionLoading === `share-folder-${folder.id}`
-                          }] : []),
-                          ...(accessLevel === 'owner' ? [{
-                            label: 'Delete',
-                            icon: TrashIcon,
-                            onClick: () => handleFolderAction('delete', folder),
-                            disabled: actionLoading === `delete-folder-${folder.id}`,
-                            className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                          }] : [])
-                        ]}
-                        onOptionClick={(option) => {
-                          console.log('📁 FolderList: onOptionClick received:', option.label);
-                          if (option.onClick) {
-                            console.log('📁 FolderList: Calling option.onClick()');
-                            option.onClick();
-                          } else {
-                            console.error('❌ FolderList: option.onClick is not defined!');
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Detail View */}
-          {viewMode === 'detail' && (
-            <div className="bg-white border border-gray-200 rounded-lg">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Items
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
-                  {folders.map((folder) => (
-                    <tr
-                      key={folder.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => onFolderClick(folder)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <FolderIcon className="w-6 h-6 text-orange-600 mr-3" />
-                          <span className="text-sm font-medium text-gray-900">{folder.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">{folder.documentCount || 0} items</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">
-                          {folder.createdAt ? formatDate(folder.createdAt) : '-'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="relative inline-block">
-                          <DropdownMenu
-                            trigger={
-                              <button className="p-1 rounded-full hover:bg-gray-200 transition-colors">
-                                <EllipsisVerticalIcon className="w-5 h-5 text-gray-500" />
-                              </button>
-                            }
-                            options={[
-                              {
-                                label: 'Rename',
-                                icon: PencilIcon,
-                                onClick: () => handleFolderAction('edit', folder),
-                                disabled: actionLoading === `edit-folder-${folder.id}`
-                              },
-                              ...(accessLevel === 'owner' ? [{
-                                label: 'Share',
-                                icon: ShareIcon,
-                                onClick: () => handleFolderAction('share', folder),
-                                disabled: actionLoading === `share-folder-${folder.id}`
-                              }] : []),
-                              ...(accessLevel === 'owner' ? [{
-                                label: 'Delete',
-                                icon: TrashIcon,
-                                onClick: () => handleFolderAction('delete', folder),
-                                disabled: actionLoading === `delete-folder-${folder.id}`,
-                                className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                              }] : [])
-                            ]}
-                            onOptionClick={(option) => {
-                              console.log('📁 FolderList: onOptionClick received:', option.label);
-                              if (option.onClick) {
-                                console.log('📁 FolderList: Calling option.onClick()');
-                                option.onClick();
-                              } else {
-                                console.error('❌ FolderList: option.onClick is not defined!');
-                              }
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Shared Folders Section */}
+      {renderFolderSection(actualSharedFolders, 'Shared Folder', 'read')}
 
       {/* Files Section */}
       {documents.length > 0 && (
