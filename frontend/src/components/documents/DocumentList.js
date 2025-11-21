@@ -168,34 +168,8 @@ export default function DocumentList({
   };
 
   const getFileIconColor = (fileName) => {
-    if (!fileName) {
-      return 'text-gray-500';
-    }
-
-    const extension = fileName.split('.').pop()?.toLowerCase();
-
-    switch (extension) {
-      case 'pdf':
-        return 'text-red-500';
-      case 'doc':
-      case 'docx':
-        return 'text-blue-500';
-      case 'xls':
-      case 'xlsx':
-        return 'text-green-500';
-      case 'ppt':
-      case 'pptx':
-        return 'text-orange-500';
-      case 'txt':
-        return 'text-gray-500';
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-        return 'text-purple-500';
-      default:
-        return 'text-gray-500';
-    }
+    // All document icons now use orange-600 to match the add document/folder buttons
+    return 'text-orange-600';
   };
 
   if (loading) {
@@ -227,7 +201,7 @@ export default function DocumentList({
               onClick={() => handleViewModeChange('grid')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-orange-600 text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -238,7 +212,7 @@ export default function DocumentList({
               onClick={() => handleViewModeChange('detail')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 viewMode === 'detail'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-orange-600 text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -268,7 +242,7 @@ export default function DocumentList({
                     className="relative flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
                     onClick={() => onFolderClick(folder)}
                   >
-                    <FolderIcon className="w-20 h-20 text-yellow-500 mb-1" />
+                    <FolderIcon className="w-20 h-20 text-orange-600 mb-1" />
                     <p className="text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2">
                       {folder.name}
                     </p>
@@ -350,7 +324,7 @@ export default function DocumentList({
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <FolderIcon className="w-6 h-6 text-yellow-500 mr-3" />
+                          <FolderIcon className="w-6 h-6 text-orange-600 mr-3" />
                           <span className="text-sm font-medium text-gray-900">{folder.name}</span>
                         </div>
                       </td>
@@ -535,7 +509,7 @@ export default function DocumentList({
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <DocumentIcon className="w-6 h-6 text-blue-500 mr-3" />
+                          <DocumentIcon className="w-6 h-6 text-orange-600 mr-3" />
                           <span className="text-sm font-medium text-gray-900">{document.title}</span>
                         </div>
                       </td>
