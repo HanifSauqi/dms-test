@@ -12,13 +12,15 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
   // Support both 'items' and 'options' props for backward compatibility
   const menuItems = items || options || [];
 
-  // Update position when scrolling
+  // Update position dynamically - untuk position: fixed gunakan rect langsung tanpa scrollY/scrollX
   const updatePosition = () => {
-    if (triggerRef.current && isOpen) {
+    if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const dropdownWidth = 192; // w-48 = 192px
+
       setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right - 192 + window.scrollX // 192px = w-48
+        top: rect.bottom + 4, // 4px spacing, TANPA window.scrollY karena fixed positioning
+        left: rect.right - dropdownWidth // Align ke kanan trigger button
       });
     }
   };
@@ -38,13 +40,16 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
     };
 
     const handleScroll = () => {
-      updatePosition();
+      if (isOpen) {
+        updatePosition();
+      }
     };
 
     if (isOpen) {
+      updatePosition(); // Update position immediately when opened
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
-      document.addEventListener('scroll', handleScroll, true); // true = capture phase untuk semua scroll events
+      document.addEventListener('scroll', handleScroll, true); // Capture phase untuk semua scroll events
       window.addEventListener('resize', updatePosition);
     }
 
@@ -74,17 +79,8 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
 
   const handleTriggerClick = (e) => {
     e.stopPropagation();
-
-    if (!isOpen && triggerRef.current) {
-      // Calculate position when opening
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right - 192 + window.scrollX // 192px = w-48
-      });
-    }
-
     setIsOpen(!isOpen);
+    // Position akan di-update otomatis oleh useEffect
   };
 
   return (
