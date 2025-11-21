@@ -31,7 +31,8 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
   const fetchAllUsers = useCallback(async () => {
     try {
       setLoadingUsers(true);
-      const response = await api.get('/users');
+      // Use list-for-sharing endpoint yang bisa diakses semua authenticated users
+      const response = await api.get('/users/list-for-sharing');
       console.log('📊 Users API Response:', response.data);
 
       if (response.data.success) {

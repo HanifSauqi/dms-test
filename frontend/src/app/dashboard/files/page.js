@@ -94,21 +94,33 @@ export default function DashboardPage() {
 
         console.log('✅ ownedFolders:', ownedFolders.length);
         console.log('✅ sharedFoldersData:', sharedFoldersData.length);
-        console.log('📊 Sample sharedFolder:', sharedFoldersData[0]);
+        console.log('📊 Sample sharedFolder from API:', sharedFoldersData[0]);
 
         // Combine folders dengan flag untuk membedakan
         // Pastikan semua folder punya accessLevel (camelCase) untuk konsistensi
         // sharedFoldersData menggunakan permissionLevel, bukan accessLevel
-        const allFolders = [
-          ...ownedFolders.map(f => ({ ...f, accessLevel: 'owner', access_level: 'owner' })),
-          ...sharedFoldersData.map(f => ({
+        const mappedSharedFolders = sharedFoldersData.map(f => {
+          const mapped = {
             ...f,
             accessLevel: f.permissionLevel || f.accessLevel,
             access_level: f.permissionLevel || f.access_level
-          }))
+          };
+          console.log(`🔄 Mapped shared folder "${f.name}":`, {
+            original_permissionLevel: f.permissionLevel,
+            original_accessLevel: f.accessLevel,
+            mapped_accessLevel: mapped.accessLevel,
+            mapped_access_level: mapped.access_level
+          });
+          return mapped;
+        });
+
+        const allFolders = [
+          ...ownedFolders.map(f => ({ ...f, accessLevel: 'owner', access_level: 'owner' })),
+          ...mappedSharedFolders
         ];
 
         console.log('✅ allFolders combined:', allFolders.length);
+        console.log('📂 All folders:', allFolders);
 
         setFolders(allFolders);
         setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);

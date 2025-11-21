@@ -9,7 +9,10 @@ const {
   deleteUser
 } = require('../controllers/userController');
 
-// All routes require authentication and superadmin role
+// Special route for folder sharing - accessible by all authenticated users
+router.get('/list-for-sharing', authenticateToken, getAllUsers);
+
+// All other routes require authentication and superadmin role
 router.use(authenticateToken);
 router.use(requireSuperAdmin);
 
