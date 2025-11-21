@@ -60,23 +60,46 @@ export default function DashboardPage() {
 
       const promises = [];
 
-      // Fetch folders
-      const foldersParams = currentFolderId ? `?parentId=${currentFolderId}` : '';
-      promises.push(folderApi.getAll(currentFolderId));
+      // Jika di root level, fetch owned folders dan shared folders terpisah
+      if (!currentFolderId) {
+        // Fetch owned folders
+        promises.push(folderApi.getAll(null));
 
-      // Fetch documents
-      const documentsParams = currentFolderId
-        ? `?folderId=${currentFolderId}&limit=100`
-        : '?folderId=&limit=100';
-      promises.push(documentApi.getAll({
-        folderId: currentFolderId || null,
-        limit: 100
-      }));
+        // Fetch shared folders
+        promises.push(folderApi.getShared());
 
-      const [foldersResponse, documentsResponse] = await Promise.all(promises);
+        // Fetch documents
+        promises.push(documentApi.getAll({
+          folderId: null,
+          limit: 100
+        }));
 
-      setFolders(foldersResponse.data?.folders || foldersResponse.folders || []);
-      setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
+        const [ownedFoldersResponse, sharedFoldersResponse, documentsResponse] = await Promise.all(promises);
+
+        const ownedFolders = ownedFoldersResponse.data?.folders || ownedFoldersResponse.folders || [];
+        const sharedFoldersData = sharedFoldersResponse.data?.sharedFolders || sharedFoldersResponse.sharedFolders || [];
+
+        // Combine folders dengan flag untuk membedakan
+        const allFolders = [
+          ...ownedFolders.map(f => ({ ...f, access_level: 'owner' })),
+          ...sharedFoldersData
+        ];
+
+        setFolders(allFolders);
+        setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
+      } else {
+        // Jika sedang di dalam folder, fetch subfolders dan documents
+        promises.push(folderApi.getAll(currentFolderId));
+        promises.push(documentApi.getAll({
+          folderId: currentFolderId,
+          limit: 100
+        }));
+
+        const [foldersResponse, documentsResponse] = await Promise.all(promises);
+
+        setFolders(foldersResponse.data?.folders || foldersResponse.folders || []);
+        setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
+      }
 
     } catch (error) {
       console.error('Error fetching data:', error);
