@@ -14,12 +14,26 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
 
   // Update position dynamically - untuk position: fixed gunakan rect langsung tanpa scrollY/scrollX
   const updatePosition = () => {
-    if (triggerRef.current) {
+    if (triggerRef.current && dropdownRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const dropdownWidth = 192; // w-48 = 192px
+      const dropdownHeight = dropdownRef.current.offsetHeight || 300; // Estimasi tinggi dropdown
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      // Tentukan apakah dropdown harus muncul di atas atau di bawah
+      let top;
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        // Tidak cukup ruang di bawah, tapi ada lebih banyak ruang di atas
+        top = rect.top - dropdownHeight - 4; // Tampilkan di ATAS tombol
+      } else {
+        // Cukup ruang di bawah, atau lebih baik di bawah
+        top = rect.bottom + 4; // Tampilkan di BAWAH tombol
+      }
 
       setPosition({
-        top: rect.bottom + 4, // 4px spacing, TANPA window.scrollY karena fixed positioning
+        top: top,
         left: rect.right - dropdownWidth // Align ke kanan trigger button
       });
     }
@@ -47,6 +61,12 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
 
     if (isOpen) {
       updatePosition(); // Update position immediately when opened
+
+      // Update position lagi setelah dropdown ter-render (untuk mendapatkan tinggi yang akurat)
+      requestAnimationFrame(() => {
+        updatePosition();
+      });
+
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
       document.addEventListener('scroll', handleScroll, true); // Capture phase untuk semua scroll events
@@ -104,7 +124,7 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="fixed z-[100] w-48 bg-white rounded-md shadow-xl border border-gray-200 py-1"
+          className="fixed z-[100] w-48 bg-white rounded-md shadow-xl border border-gray-200 py-1 max-h-[80vh] overflow-y-auto"
           style={{
             top: `${position.top}px`,
             left: `${position.left}px`
