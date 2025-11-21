@@ -145,12 +145,26 @@ export default function DashboardPage() {
 
   const handleCreateFolder = async (folderName) => {
     try {
+      // Check if current folder is a shared folder (not owned by user)
+      const currentFolder = folders.find(f => f.id === currentFolderId);
+      const isInSharedFolder = currentFolder && currentFolder.access_level !== 'owner';
+
+      // If in shared folder, create new folder at root level (parentId = null)
+      // If in own folder, create as subfolder
+      const parentId = isInSharedFolder ? null : currentFolderId;
+
       await folderApi.create({
         name: folderName,
-        parentId: currentFolderId
+        parentId: parentId
       });
 
       showSuccess('Folder created successfully');
+
+      // If created at root level while in shared folder, redirect to root
+      if (isInSharedFolder) {
+        router.push('/dashboard/files');
+      }
+
       fetchData();
     } catch (error) {
       console.error('Error creating folder:', error);
