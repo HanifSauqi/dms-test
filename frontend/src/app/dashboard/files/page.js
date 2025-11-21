@@ -79,13 +79,26 @@ export default function DashboardPage() {
         const allFoldersFromApi = ownedFoldersResponse.data?.folders || ownedFoldersResponse.folders || [];
         const sharedFoldersData = sharedFoldersResponse.data?.sharedFolders || sharedFoldersResponse.sharedFolders || [];
 
-        // Filter owned folders - hanya ambil yang access_level === 'owner'
+        console.log('📊 allFoldersFromApi:', allFoldersFromApi);
+        console.log('📊 Sample folder:', allFoldersFromApi[0]);
+        console.log('📊 sharedFoldersData:', sharedFoldersData);
+
+        // Filter owned folders - hanya ambil yang accessLevel === 'owner'
         // karena getFolders() mengembalikan semua folder (owned + shared)
-        const ownedFolders = allFoldersFromApi.filter(f => f.access_level === 'owner');
+        // Backend mengembalikan accessLevel (camelCase) dari controller
+        const ownedFolders = allFoldersFromApi.filter(f => {
+          const isOwner = f.accessLevel === 'owner' || f.access_level === 'owner';
+          console.log(`📁 Folder "${f.name}": accessLevel="${f.accessLevel}", access_level="${f.access_level}", isOwner=${isOwner}`);
+          return isOwner;
+        });
+
+        console.log('✅ ownedFolders:', ownedFolders.length);
+        console.log('✅ sharedFoldersData:', sharedFoldersData.length);
 
         // Combine folders dengan flag untuk membedakan
+        // Pastikan semua folder punya accessLevel (camelCase) untuk konsistensi
         const allFolders = [
-          ...ownedFolders.map(f => ({ ...f, access_level: 'owner' })),
+          ...ownedFolders.map(f => ({ ...f, accessLevel: 'owner', access_level: 'owner' })),
           ...sharedFoldersData
         ];
 
@@ -174,7 +187,9 @@ export default function DashboardPage() {
     try {
       // Check if current folder is a shared folder (not owned by user)
       const currentFolder = folders.find(f => f.id === currentFolderId);
-      const isInSharedFolder = currentFolder && currentFolder.access_level !== 'owner';
+      // Check both accessLevel (camelCase) and access_level (snake_case)
+      const isInSharedFolder = currentFolder &&
+        (currentFolder.accessLevel !== 'owner' && currentFolder.access_level !== 'owner');
 
       // If in shared folder, create new folder at root level (parentId = null)
       // If in own folder, create as subfolder
@@ -388,8 +403,15 @@ export default function DashboardPage() {
 
   // Separate folders into owned and shared
   const { ownedFolders, sharedFolders } = useMemo(() => {
-    const owned = folders.filter(folder => folder.access_level === 'owner');
-    const shared = folders.filter(folder => folder.access_level !== 'owner');
+    // Check both accessLevel (camelCase) and access_level (snake_case) for compatibility
+    const owned = folders.filter(folder =>
+      folder.accessLevel === 'owner' || folder.access_level === 'owner'
+    );
+    const shared = folders.filter(folder =>
+      (folder.accessLevel && folder.accessLevel !== 'owner') ||
+      (folder.access_level && folder.access_level !== 'owner')
+    );
+    console.log('🔍 useMemo - owned:', owned.length, 'shared:', shared.length);
     return { ownedFolders: owned, sharedFolders: shared };
   }, [folders]);
 
