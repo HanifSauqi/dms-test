@@ -32,11 +32,32 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
     try {
       setLoadingUsers(true);
       const response = await api.get('/users');
+      console.log('📊 Users API Response:', response.data);
+
       if (response.data.success) {
-        setAllUsers(response.data.data || []);
+        const users = response.data.data;
+        console.log('👥 Users data:', users);
+        console.log('👥 Is Array?:', Array.isArray(users));
+
+        // Pastikan users adalah array
+        if (Array.isArray(users)) {
+          setAllUsers(users);
+          console.log('✅ Set users array:', users.length, 'users');
+        } else if (users && typeof users === 'object') {
+          // Jika response.data.data adalah object dengan property users
+          const usersList = users.users || [];
+          setAllUsers(usersList);
+          console.log('✅ Set users from object.users:', usersList.length, 'users');
+        } else {
+          setAllUsers([]);
+          console.log('⚠️ No valid users data, set empty array');
+        }
+      } else {
+        setAllUsers([]);
+        console.log('❌ API response not successful');
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('❌ Error fetching users:', error);
       // Jika gagal fetch users (misal tidak punya akses), gunakan mode input email manual
       setAllUsers([]);
     } finally {
@@ -83,25 +104,36 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
     };
   }, [showDropdown]);
 
-  // Filter users yang belum memiliki akses
-  const availableUsers = allUsers.filter(user =>
-    !permissions.some(perm => perm.user.id === user.id)
-  );
+  // Filter users yang belum memiliki akses (dengan defensive check)
+  const availableUsers = Array.isArray(allUsers)
+    ? allUsers.filter(user =>
+        !permissions.some(perm => perm.user && perm.user.id === user.id)
+      )
+    : [];
 
-  // Filter users berdasarkan search query
-  const filteredUsers = availableUsers.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter users berdasarkan search query (dengan defensive check)
+  const filteredUsers = Array.isArray(availableUsers)
+    ? availableUsers.filter(user =>
+        (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : [];
 
-  // Get selected user
-  const selectedUser = allUsers.find(user => user.id === parseInt(selectedUserId));
+  // Get selected user (dengan defensive check)
+  const selectedUser = Array.isArray(allUsers)
+    ? allUsers.find(user => user.id === parseInt(selectedUserId))
+    : null;
 
   const shareFolder = async () => {
     if (!selectedUserId) return;
 
-    const userToShare = allUsers.find(user => user.id === parseInt(selectedUserId));
-    if (!userToShare) return;
+    const userToShare = Array.isArray(allUsers)
+      ? allUsers.find(user => user.id === parseInt(selectedUserId))
+      : null;
+    if (!userToShare) {
+      alert('Selected user not found');
+      return;
+    }
 
     try {
       setSharing(true);
