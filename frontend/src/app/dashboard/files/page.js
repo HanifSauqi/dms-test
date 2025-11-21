@@ -76,8 +76,12 @@ export default function DashboardPage() {
 
         const [ownedFoldersResponse, sharedFoldersResponse, documentsResponse] = await Promise.all(promises);
 
-        const ownedFolders = ownedFoldersResponse.data?.folders || ownedFoldersResponse.folders || [];
+        const allFoldersFromApi = ownedFoldersResponse.data?.folders || ownedFoldersResponse.folders || [];
         const sharedFoldersData = sharedFoldersResponse.data?.sharedFolders || sharedFoldersResponse.sharedFolders || [];
+
+        // Filter owned folders - hanya ambil yang access_level === 'owner'
+        // karena getFolders() mengembalikan semua folder (owned + shared)
+        const ownedFolders = allFoldersFromApi.filter(f => f.access_level === 'owner');
 
         // Combine folders dengan flag untuk membedakan
         const allFolders = [
