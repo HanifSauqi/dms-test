@@ -12,6 +12,17 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
   // Support both 'items' and 'options' props for backward compatibility
   const menuItems = items || options || [];
 
+  // Update position when scrolling
+  const updatePosition = () => {
+    if (triggerRef.current && isOpen) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right - 192 + window.scrollX // 192px = w-48
+      });
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
@@ -26,14 +37,22 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
       }
     };
 
+    const handleScroll = () => {
+      updatePosition();
+    };
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
+      document.addEventListener('scroll', handleScroll, true); // true = capture phase untuk semua scroll events
+      window.addEventListener('resize', updatePosition);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [isOpen]);
 
