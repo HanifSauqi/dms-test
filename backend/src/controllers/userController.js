@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../utils/database');
 const { successResponse, errorResponse } = require('../utils/response');
 const authConfig = require('../config/auth.config');
+const { logUserActivity } = require('../utils/userActivityLogger');
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,6 +80,19 @@ const createUser = async (req, res) => {
 
     const user = newUser.rows[0];
 
+    // Log user activity
+    await logUserActivity(req.user.id, 'create_user', {
+      description: `Created user: ${user.name} (${user.email})`,
+      targetType: 'user',
+      targetId: user.id,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      metadata: {
+        createdUserEmail: user.email,
+        createdUserRole: user.role
+      }
+    });
+
     successResponse(res, 'User created successfully', {
       user: {
         id: user.id,
@@ -154,15 +168,17 @@ const updateUser = async (req, res) => {
       return errorResponse(res, 'At least one field (name, email, or role) must be provided', 400);
     }
 
-    // Check if user exists
+    // Check if user exists and get current data
     const existingUser = await pool.query(
-      'SELECT id FROM users WHERE id = $1',
+      'SELECT id, name, email, role FROM users WHERE id = $1',
       [id]
     );
 
     if (existingUser.rows.length === 0) {
       return errorResponse(res, 'User not found', 404);
     }
+
+    const oldUserData = existingUser.rows[0];
 
     // Build dynamic update query
     const updates = [];
@@ -216,6 +232,27 @@ const updateUser = async (req, res) => {
 
     const result = await pool.query(query, values);
 
+    // Log user activity
+    await logUserActivity(req.user.id, 'edit_user', {
+      description: `Edited user: ${result.rows[0].name} (${result.rows[0].email})`,
+      targetType: 'user',
+      targetId: id,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      metadata: {
+        oldData: {
+          name: oldUserData.name,
+          email: oldUserData.email,
+          role: oldUserData.role
+        },
+        newData: {
+          name: result.rows[0].name,
+          email: result.rows[0].email,
+          role: result.rows[0].role
+        }
+      }
+    });
+
     successResponse(res, 'User updated successfully', {
       user: result.rows[0]
     });
@@ -238,15 +275,31 @@ const deleteUser = async (req, res) => {
       return errorResponse(res, 'You cannot delete your own account', 400);
     }
 
-    // Check if user exists
+    // Check if user exists and get data for logging
     const existingUser = await pool.query(
-      'SELECT id FROM users WHERE id = $1',
+      'SELECT id, name, email, role FROM users WHERE id = $1',
       [id]
     );
 
     if (existingUser.rows.length === 0) {
       return errorResponse(res, 'User not found', 404);
     }
+
+    const deletedUser = existingUser.rows[0];
+
+    // Log user activity before deletion
+    await logUserActivity(req.user.id, 'delete_user', {
+      description: `Deleted user: ${deletedUser.name} (${deletedUser.email})`,
+      targetType: 'user',
+      targetId: id,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      metadata: {
+        deletedUserName: deletedUser.name,
+        deletedUserEmail: deletedUser.email,
+        deletedUserRole: deletedUser.role
+      }
+    });
 
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
 

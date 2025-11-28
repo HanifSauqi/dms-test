@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login } = require('../controllers/authController');
+const { register, login, logout } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -8,6 +8,7 @@ const router = express.Router();
 // Register route disabled - users are now created by superadmin via /api/users
 // router.post('/register', register);
 router.post('/login', login);
+router.post('/logout', authenticateToken, logout);
 
 // Protected routes
 router.get('/verify', authenticateToken, (req, res) => {

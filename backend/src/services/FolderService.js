@@ -1,6 +1,7 @@
 const BaseService = require('./BaseService');
 const pool = require('../utils/database');
 const permissionService = require('./PermissionService');
+const { logUserActivity } = require('../utils/userActivityLogger');
 
 class FolderService extends BaseService {
   constructor() {
@@ -39,7 +40,20 @@ class FolderService extends BaseService {
       [name.trim(), parentId || null, userId]
     );
 
-    return result.rows[0];
+    const folder = result.rows[0];
+
+    // Log user activity
+    await logUserActivity(userId, 'create_folder', {
+      description: `Created folder: ${folder.name}`,
+      targetType: 'folder',
+      targetId: folder.id,
+      metadata: {
+        folderName: folder.name,
+        parentId: folder.parent_id
+      }
+    });
+
+    return folder;
   }
 
   async getFolders(userId, parentId = null) {
@@ -148,7 +162,20 @@ class FolderService extends BaseService {
       [name.trim(), folderId]
     );
 
-    return result.rows[0];
+    const updatedFolder = result.rows[0];
+
+    // Log user activity
+    await logUserActivity(userId, 'edit_folder', {
+      description: `Edited folder: ${updatedFolder.name}`,
+      targetType: 'folder',
+      targetId: folderId,
+      metadata: {
+        oldName: folder.name,
+        newName: updatedFolder.name
+      }
+    });
+
+    return updatedFolder;
   }
 
   async deleteFolder(folderId, userId, force = false) {
@@ -156,6 +183,9 @@ class FolderService extends BaseService {
     if (!isOwner) {
       throw new Error('Only folder owner can delete folders');
     }
+
+    // Get folder details before deletion for logging
+    const folderDetails = await this.findById(folderId);
 
     const contentCheck = await pool.query(
       `SELECT
@@ -169,6 +199,19 @@ class FolderService extends BaseService {
     if ((parseInt(subfolder_count) > 0 || parseInt(document_count) > 0) && !force) {
       throw new Error('Cannot delete folder: contains subfolders or documents. Use force=true to delete recursively.');
     }
+
+    // Log user activity before deletion
+    await logUserActivity(userId, 'delete_folder', {
+      description: `Deleted folder: ${folderDetails.name}`,
+      targetType: 'folder',
+      targetId: folderId,
+      metadata: {
+        folderName: folderDetails.name,
+        force: force,
+        subfolderCount: parseInt(subfolder_count),
+        documentCount: parseInt(document_count)
+      }
+    });
 
     await this.transaction(async (client) => {
       if (force) {

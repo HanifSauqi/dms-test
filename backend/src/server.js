@@ -17,6 +17,7 @@ try {
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const userActivityRoutes = require('./routes/userActivities');
 const folderRoutes = require('./routes/folders');
 const documentRoutes = require('./routes/documents');
 const labelRoutes = require('./routes/labels');
@@ -49,6 +50,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/user-activities', userActivityRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/labels', labelRoutes);
