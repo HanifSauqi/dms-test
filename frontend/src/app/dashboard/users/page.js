@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usersApi } from '@/lib/api';
-import { PlusIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronRightIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
+import UserActivityModal from '@/components/users/UserActivityModal';
 
 export default function UserManagementPage() {
   const { user } = useAuth();
@@ -22,6 +23,8 @@ export default function UserManagementPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Redirect if not superadmin
   useEffect(() => {
@@ -114,6 +117,16 @@ export default function UserManagementPage() {
       setError(error?.message || 'Failed to delete user');
       setTimeout(() => setError(''), 3000);
     }
+  };
+
+  const handleViewActivityLogs = (u) => {
+    setSelectedUser(u);
+    setShowActivityModal(true);
+  };
+
+  const handleCloseActivityModal = () => {
+    setShowActivityModal(false);
+    setSelectedUser(null);
   };
 
   if (loading) {
@@ -219,14 +232,23 @@ export default function UserManagementPage() {
                   {new Date(u.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleDeleteUser(u.id, u.name)}
-                    disabled={u.id === user.id}
-                    className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={u.id === user.id ? "You cannot delete yourself" : "Delete user"}
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => handleViewActivityLogs(u)}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="View activity logs"
+                    >
+                      <ClockIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.name)}
+                      disabled={u.id === user.id}
+                      className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={u.id === user.id ? "You cannot delete yourself" : "Delete user"}
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -352,6 +374,15 @@ export default function UserManagementPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* User Activity Modal */}
+      {selectedUser && (
+        <UserActivityModal
+          isOpen={showActivityModal}
+          onClose={handleCloseActivityModal}
+          user={selectedUser}
+        />
       )}
     </div>
   );

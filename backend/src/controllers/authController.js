@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../utils/database');
 const { successResponse, errorResponse } = require('../utils/response');
 const authConfig = require('../config/auth.config');
+const { logUserActivity } = require('../utils/userActivityLogger');
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -149,6 +150,14 @@ const login = async (req, res) => {
       { expiresIn: authConfig.jwtExpiresIn }
     );
 
+    // Log user login activity
+    await logUserActivity(user.id, 'login', {
+      description: `User ${user.name} logged in`,
+      targetType: 'system',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent')
+    });
+
     successResponse(res, 'Login successful', {
       user: {
         id: user.id,
@@ -165,4 +174,24 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const logout = async (req, res) => {
+  try {
+    // Log user logout activity
+    await logUserActivity(req.user.id, 'logout', {
+      description: `User ${req.user.name} logged out`,
+      targetType: 'system',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent')
+    });
+
+    successResponse(res, 'Logout successful', {
+      message: 'User logged out successfully'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    errorResponse(res, 'Logout failed', 500, error.message);
+  }
+};
+
+module.exports = { register, login, logout };
