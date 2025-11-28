@@ -5,6 +5,7 @@ const { extractTextContent } = require('../utils/fileProcessor');
 const { optimizeContent } = require('../utils/searchHelpers');
 const { classifyDocument } = require('../utils/autoClassification');
 const { logActivity } = require('../utils/activityLogger');
+const { logUserActivity } = require('../utils/userActivityLogger');
 const path = require('path');
 const fs = require('fs').promises;
 
@@ -86,6 +87,18 @@ class DocumentService extends BaseService {
         }
 
         await logActivity(doc.id, userId, 'created');
+
+        // Log user activity
+        await logUserActivity(userId, 'create_document', {
+          description: `Created document: ${doc.title}`,
+          targetType: 'document',
+          targetId: doc.id,
+          metadata: {
+            fileName: doc.file_name,
+            folderId: doc.folder_id,
+            autoClassified: classification?.autoClassified || false
+          }
+        });
 
         uploadedDocuments.push({
           id: doc.id,
@@ -270,6 +283,17 @@ class DocumentService extends BaseService {
 
     await logActivity(documentId, userId, 'viewed');
 
+    // Log user activity
+    await logUserActivity(userId, 'view_document', {
+      description: `Viewed document: ${doc.title}`,
+      targetType: 'document',
+      targetId: documentId,
+      metadata: {
+        fileName: doc.file_name,
+        folderId: doc.folder_id
+      }
+    });
+
     return doc;
   }
 
@@ -315,6 +339,21 @@ class DocumentService extends BaseService {
 
     await logActivity(documentId, userId, 'edited');
 
+    // Log user activity
+    await logUserActivity(userId, 'edit_document', {
+      description: `Edited document: ${result.rows[0].title}`,
+      targetType: 'document',
+      targetId: documentId,
+      metadata: {
+        updates: {
+          title: title !== undefined,
+          folderId: folderId !== undefined
+        },
+        oldTitle: doc.title,
+        newTitle: result.rows[0].title
+      }
+    });
+
     return result.rows[0];
   }
 
@@ -328,6 +367,17 @@ class DocumentService extends BaseService {
     if (doc.owner_id !== userId) {
       throw new Error('Only document owner can delete documents');
     }
+
+    // Log user activity before deletion
+    await logUserActivity(userId, 'delete_document', {
+      description: `Deleted document: ${doc.title}`,
+      targetType: 'document',
+      targetId: documentId,
+      metadata: {
+        fileName: doc.file_name,
+        folderId: doc.folder_id
+      }
+    });
 
     await this.transaction(async (client) => {
       await client.query('DELETE FROM document_labels WHERE document_id = $1', [documentId]);
