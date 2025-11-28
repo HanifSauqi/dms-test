@@ -133,6 +133,7 @@ class DocumentService extends BaseService {
 
     const actualFolderId = folderId === "null" || folderId === null ? null : folderId;
 
+    // Modified query to include shared folders
     let query = `
       SELECT DISTINCT d.id, d.title, d.file_name, d.file_path, d.extracted_content,
         d.folder_id, d.owner_id, d.created_at, d.updated_at,
@@ -145,7 +146,11 @@ class DocumentService extends BaseService {
       LEFT JOIN folders f ON d.folder_id = f.id
       LEFT JOIN document_labels dl ON d.id = dl.document_id
       LEFT JOIN labels l ON dl.label_id = l.id
-      WHERE d.owner_id = $1
+      LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      WHERE (
+        d.owner_id = $1
+        OR (fp.user_id = $1 AND fp.permission_level IN ('read', 'write', 'admin'))
+      )
     `;
 
     const params = [userId];
@@ -182,12 +187,17 @@ class DocumentService extends BaseService {
 
     const result = await pool.query(query, params);
 
+    // Modified count query to include shared folders
     let countQuery = `
       SELECT COUNT(DISTINCT d.id) as total
       FROM documents d
       LEFT JOIN document_labels dl ON d.id = dl.document_id
       LEFT JOIN labels l ON dl.label_id = l.id
-      WHERE d.owner_id = $1
+      LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      WHERE (
+        d.owner_id = $1
+        OR (fp.user_id = $1 AND fp.permission_level IN ('read', 'write', 'admin'))
+      )
     `;
 
     const countParams = [userId];
@@ -386,16 +396,57 @@ class DocumentService extends BaseService {
 
   async getSharedDocuments(userId, options = {}) {
     const { page = 1, limit = 20 } = options;
+    const offset = (page - 1) * limit;
+
+    // Query untuk mendapatkan documents dari shared folders
+    const query = `
+      SELECT DISTINCT d.id, d.title, d.file_name, d.file_path, d.extracted_content,
+        d.folder_id, d.owner_id, d.created_at, d.updated_at,
+        f.name as folder_name,
+        u.email as owner_email,
+        u.name as owner_name,
+        fp.permission_level,
+        array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
+      FROM documents d
+      JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      JOIN folders f ON d.folder_id = f.id
+      JOIN users u ON d.owner_id = u.id
+      LEFT JOIN document_labels dl ON d.id = dl.document_id
+      LEFT JOIN labels l ON dl.label_id = l.id
+      WHERE fp.user_id = $1
+        AND d.owner_id != $1
+        AND fp.permission_level IN ('read', 'write', 'admin')
+      GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content,
+        d.folder_id, d.owner_id, d.created_at, d.updated_at,
+        f.name, u.email, u.name, fp.permission_level
+      ORDER BY d.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const result = await pool.query(query, [userId, limit, offset]);
+
+    // Count total shared documents
+    const countQuery = `
+      SELECT COUNT(DISTINCT d.id) as total
+      FROM documents d
+      JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      WHERE fp.user_id = $1
+        AND d.owner_id != $1
+        AND fp.permission_level IN ('read', 'write', 'admin')
+    `;
+
+    const countResult = await pool.query(countQuery, [userId]);
+    const total = parseInt(countResult.rows[0].total);
 
     return {
-      documents: [],
+      documents: result.rows,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: 0,
-        totalPages: 0,
-        hasNext: false,
-        hasPrev: false
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
       }
     };
   }
@@ -528,6 +579,29 @@ class DocumentService extends BaseService {
     const doc = await this._getDocumentWithoutLogging(documentId, userId);
     if (!doc) {
       throw new Error('Document not found or access denied');
+    }
+
+    // Get users who have access to this document through folder sharing
+    if (doc.folder_id) {
+      const result = await pool.query(
+        `SELECT DISTINCT u.id, u.name, u.email,
+          CONCAT(SUBSTRING(u.name FROM 1 FOR 1), SUBSTRING(SPLIT_PART(u.name, ' ', 2) FROM 1 FOR 1)) as initials,
+          fp.permission_level
+         FROM folder_permissions fp
+         JOIN users u ON fp.user_id = u.id
+         WHERE fp.folder_id = $1
+           AND fp.user_id != $2
+         ORDER BY u.name`,
+        [doc.folder_id, userId]
+      );
+
+      return result.rows.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        initials: user.initials || user.name.substring(0, 2).toUpperCase(),
+        permissionLevel: user.permission_level
+      }));
     }
 
     return [];

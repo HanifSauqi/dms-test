@@ -60,23 +60,83 @@ export default function DashboardPage() {
 
       const promises = [];
 
-      // Fetch folders
-      const foldersParams = currentFolderId ? `?parentId=${currentFolderId}` : '';
-      promises.push(folderApi.getAll(currentFolderId));
+      // Jika di root level, fetch owned folders dan shared folders terpisah
+      if (!currentFolderId) {
+        // Fetch owned folders
+        promises.push(folderApi.getAll(null));
 
-      // Fetch documents
-      const documentsParams = currentFolderId
-        ? `?folderId=${currentFolderId}&limit=100`
-        : '?folderId=&limit=100';
-      promises.push(documentApi.getAll({
-        folderId: currentFolderId || null,
-        limit: 100
-      }));
+        // Fetch shared folders
+        promises.push(folderApi.getShared());
 
-      const [foldersResponse, documentsResponse] = await Promise.all(promises);
+        // Fetch documents
+        promises.push(documentApi.getAll({
+          folderId: null,
+          limit: 100
+        }));
 
-      setFolders(foldersResponse.data?.folders || foldersResponse.folders || []);
-      setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
+        const [ownedFoldersResponse, sharedFoldersResponse, documentsResponse] = await Promise.all(promises);
+
+        const allFoldersFromApi = ownedFoldersResponse.data?.folders || ownedFoldersResponse.folders || [];
+        const sharedFoldersData = sharedFoldersResponse.data?.sharedFolders || sharedFoldersResponse.sharedFolders || [];
+
+        console.log('📊 allFoldersFromApi:', allFoldersFromApi);
+        console.log('📊 Sample folder:', allFoldersFromApi[0]);
+        console.log('📊 sharedFoldersData:', sharedFoldersData);
+
+        // Filter owned folders - hanya ambil yang accessLevel === 'owner'
+        // karena getFolders() mengembalikan semua folder (owned + shared)
+        // Backend mengembalikan accessLevel (camelCase) dari controller
+        const ownedFolders = allFoldersFromApi.filter(f => {
+          const isOwner = f.accessLevel === 'owner' || f.access_level === 'owner';
+          console.log(`📁 Folder "${f.name}": accessLevel="${f.accessLevel}", access_level="${f.access_level}", isOwner=${isOwner}`);
+          return isOwner;
+        });
+
+        console.log('✅ ownedFolders:', ownedFolders.length);
+        console.log('✅ sharedFoldersData:', sharedFoldersData.length);
+        console.log('📊 Sample sharedFolder from API:', sharedFoldersData[0]);
+
+        // Combine folders dengan flag untuk membedakan
+        // Pastikan semua folder punya accessLevel (camelCase) untuk konsistensi
+        // sharedFoldersData menggunakan permissionLevel, bukan accessLevel
+        const mappedSharedFolders = sharedFoldersData.map(f => {
+          const mapped = {
+            ...f,
+            accessLevel: f.permissionLevel || f.accessLevel,
+            access_level: f.permissionLevel || f.access_level
+          };
+          console.log(`🔄 Mapped shared folder "${f.name}":`, {
+            original_permissionLevel: f.permissionLevel,
+            original_accessLevel: f.accessLevel,
+            mapped_accessLevel: mapped.accessLevel,
+            mapped_access_level: mapped.access_level
+          });
+          return mapped;
+        });
+
+        const allFolders = [
+          ...ownedFolders.map(f => ({ ...f, accessLevel: 'owner', access_level: 'owner' })),
+          ...mappedSharedFolders
+        ];
+
+        console.log('✅ allFolders combined:', allFolders.length);
+        console.log('📂 All folders:', allFolders);
+
+        setFolders(allFolders);
+        setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
+      } else {
+        // Jika sedang di dalam folder, fetch subfolders dan documents
+        promises.push(folderApi.getAll(currentFolderId));
+        promises.push(documentApi.getAll({
+          folderId: currentFolderId,
+          limit: 100
+        }));
+
+        const [foldersResponse, documentsResponse] = await Promise.all(promises);
+
+        setFolders(foldersResponse.data?.folders || foldersResponse.folders || []);
+        setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
+      }
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -145,12 +205,28 @@ export default function DashboardPage() {
 
   const handleCreateFolder = async (folderName) => {
     try {
+      // Check if current folder is a shared folder (not owned by user)
+      const currentFolder = folders.find(f => f.id === currentFolderId);
+      // Check accessLevel, access_level, atau permissionLevel
+      const accessLvl = currentFolder?.accessLevel || currentFolder?.access_level || currentFolder?.permissionLevel;
+      const isInSharedFolder = currentFolder && accessLvl !== 'owner';
+
+      // If in shared folder, create new folder at root level (parentId = null)
+      // If in own folder, create as subfolder
+      const parentId = isInSharedFolder ? null : currentFolderId;
+
       await folderApi.create({
         name: folderName,
-        parentId: currentFolderId
+        parentId: parentId
       });
 
       showSuccess('Folder created successfully');
+
+      // If created at root level while in shared folder, redirect to root
+      if (isInSharedFolder) {
+        router.push('/dashboard/files');
+      }
+
       fetchData();
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -345,6 +421,21 @@ export default function DashboardPage() {
     return filtered;
   }, [documents, searchTerm, selectedLabels]);
 
+  // Separate folders into owned and shared
+  const { ownedFolders, sharedFolders } = useMemo(() => {
+    // Check accessLevel, access_level, dan permissionLevel untuk compatibility
+    const owned = folders.filter(folder => {
+      const accessLvl = folder.accessLevel || folder.access_level || folder.permissionLevel;
+      return accessLvl === 'owner';
+    });
+    const shared = folders.filter(folder => {
+      const accessLvl = folder.accessLevel || folder.access_level || folder.permissionLevel;
+      return accessLvl && accessLvl !== 'owner';
+    });
+    console.log('🔍 useMemo - owned:', owned.length, 'shared:', shared.length);
+    return { ownedFolders: owned, sharedFolders: shared };
+  }, [folders]);
+
   return (
     <>
       {/* Breadcrumbs */}
@@ -407,7 +498,8 @@ export default function DashboardPage() {
         {/* Document List */}
         <DocumentList
           documents={filteredDocuments}
-          folders={folders}
+          ownedFolders={ownedFolders}
+          sharedFolders={sharedFolders}
           loading={loading}
           onFolderClick={handleFolderClick}
           onFolderEdit={handleFolderEdit}

@@ -12,6 +12,33 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
   // Support both 'items' and 'options' props for backward compatibility
   const menuItems = items || options || [];
 
+  // Update position dynamically - untuk position: fixed gunakan rect langsung tanpa scrollY/scrollX
+  const updatePosition = () => {
+    if (triggerRef.current && dropdownRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const dropdownWidth = 192; // w-48 = 192px
+      const dropdownHeight = dropdownRef.current.offsetHeight || 300; // Estimasi tinggi dropdown
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      // Tentukan apakah dropdown harus muncul di atas atau di bawah
+      let top;
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        // Tidak cukup ruang di bawah, tapi ada lebih banyak ruang di atas
+        top = rect.top - dropdownHeight - 4; // Tampilkan di ATAS tombol
+      } else {
+        // Cukup ruang di bawah, atau lebih baik di bawah
+        top = rect.bottom + 4; // Tampilkan di BAWAH tombol
+      }
+
+      setPosition({
+        top: top,
+        left: rect.right - dropdownWidth // Align ke kanan trigger button
+      });
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
@@ -26,14 +53,31 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
       }
     };
 
+    const handleScroll = () => {
+      if (isOpen) {
+        updatePosition();
+      }
+    };
+
     if (isOpen) {
+      updatePosition(); // Update position immediately when opened
+
+      // Update position lagi setelah dropdown ter-render (untuk mendapatkan tinggi yang akurat)
+      requestAnimationFrame(() => {
+        updatePosition();
+      });
+
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
+      document.addEventListener('scroll', handleScroll, true); // Capture phase untuk semua scroll events
+      window.addEventListener('resize', updatePosition);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [isOpen]);
 
@@ -55,17 +99,8 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
 
   const handleTriggerClick = (e) => {
     e.stopPropagation();
-
-    if (!isOpen && triggerRef.current) {
-      // Calculate position when opening
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right - 192 + window.scrollX // 192px = w-48
-      });
-    }
-
     setIsOpen(!isOpen);
+    // Position akan di-update otomatis oleh useEffect
   };
 
   return (
@@ -89,7 +124,7 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="fixed z-[100] w-48 bg-white rounded-md shadow-xl border border-gray-200 py-1"
+          className="fixed z-[100] w-48 bg-white rounded-md shadow-xl border border-gray-200 py-1 max-h-[80vh] overflow-y-auto"
           style={{
             top: `${position.top}px`,
             left: `${position.left}px`
