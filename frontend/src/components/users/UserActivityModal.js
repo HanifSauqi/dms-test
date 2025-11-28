@@ -19,10 +19,7 @@ const activityTypeLabels = {
   delete_folder: 'Deleted Folder',
   create_user: 'Created User',
   edit_user: 'Edited User',
-  delete_user: 'Deleted User',
-  upload_file: 'Uploaded File',
-  move_file: 'Moved File',
-  rename_file: 'Renamed File'
+  delete_user: 'Deleted User'
 };
 
 const activityTypeColors = {
@@ -39,14 +36,11 @@ const activityTypeColors = {
   delete_folder: 'bg-red-100 text-red-800',
   create_user: 'bg-blue-100 text-blue-800',
   edit_user: 'bg-yellow-100 text-yellow-800',
-  delete_user: 'bg-red-100 text-red-800',
-  upload_file: 'bg-blue-100 text-blue-800',
-  move_file: 'bg-yellow-100 text-yellow-800',
-  rename_file: 'bg-yellow-100 text-yellow-800'
+  delete_user: 'bg-red-100 text-red-800'
 };
 
 const getActivityIcon = (activityType) => {
-  if (activityType.includes('document') || activityType.includes('file')) {
+  if (activityType.includes('document')) {
     return DocumentTextIcon;
   } else if (activityType.includes('folder')) {
     return FolderIcon;

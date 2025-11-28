@@ -30,10 +30,7 @@ ALTER TABLE user_activities ADD CONSTRAINT check_activity_type
         'delete_folder',
         'create_user',
         'edit_user',
-        'delete_user',
-        'upload_file',
-        'move_file',
-        'rename_file'
+        'delete_user'
     ));
 
 -- Add check constraint for valid target types
