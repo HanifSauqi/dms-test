@@ -256,10 +256,9 @@ export default function DashboardPage() {
       showSuccess('Folder deleted successfully');
       fetchData();
     } catch (error) {
-      console.error('Error deleting folder:', error);
-
       const errorMessage = error.response?.data?.message || error.message;
 
+      // Check if this is the expected "folder not empty" error
       if (errorMessage && errorMessage.includes('contains subfolders or documents')) {
         const confirmForceDelete = window.confirm(
           `⚠️ This folder is not empty!\n\n` +
@@ -271,7 +270,10 @@ export default function DashboardPage() {
         if (confirmForceDelete) {
           return handleFolderDelete(folder, true);
         }
+        // User declined force delete, no need to show error
       } else {
+        // Log unexpected errors only
+        console.error('Error deleting folder:', error);
         showError(errorMessage || 'Failed to delete folder');
       }
     }

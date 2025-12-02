@@ -65,7 +65,7 @@ CREATE TABLE document_labels (
 CREATE TABLE folder_permissions (
     folder_id INTEGER REFERENCES folders(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    permission_level VARCHAR(50) NOT NULL CHECK (permission_level IN ('read', 'write', 'admin')),
+    permission_level VARCHAR(50) NOT NULL CHECK (permission_level IN ('viewer', 'editor')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (folder_id, user_id)
 );

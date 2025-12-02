@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usersApi } from '@/lib/api';
 import { PlusIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronRightIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
-import UserActivityModal from '@/components/users/UserActivityModal';
 
 export default function UserManagementPage() {
   const { user } = useAuth();
@@ -23,8 +22,6 @@ export default function UserManagementPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showActivityModal, setShowActivityModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
 
   // Redirect if not superadmin
   useEffect(() => {
@@ -120,13 +117,7 @@ export default function UserManagementPage() {
   };
 
   const handleViewActivityLogs = (u) => {
-    setSelectedUser(u);
-    setShowActivityModal(true);
-  };
-
-  const handleCloseActivityModal = () => {
-    setShowActivityModal(false);
-    setSelectedUser(null);
+    router.push(`/dashboard/users/${u.id}/activity`);
   };
 
   if (loading) {
@@ -376,14 +367,6 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* User Activity Modal */}
-      {selectedUser && (
-        <UserActivityModal
-          isOpen={showActivityModal}
-          onClose={handleCloseActivityModal}
-          user={selectedUser}
-        />
-      )}
     </div>
   );
 }

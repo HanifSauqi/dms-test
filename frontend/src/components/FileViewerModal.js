@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { XMarkIcon, ArrowDownTrayIcon, DocumentIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
@@ -9,29 +9,30 @@ const PDFViewer = ({ document, onError }) => {
   const { api } = useAuth();
   const [pdfUrl, setPdfUrl] = useState(null);
   const [loading, setLoading] = useState(true);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
+    // Create new abort controller for this effect
+    abortControllerRef.current = new AbortController();
+
     const loadPDF = async () => {
       try {
         setLoading(true);
-        console.log('Loading PDF for document:', document.id);
-        console.log('API baseURL:', api.defaults.baseURL);
-        console.log('Auth header:', api.defaults.headers.common['Authorization']);
-        
-        const response = await api.get(`/documents/${document.id}/view`, {
-          responseType: 'blob'
-        });
 
-        console.log('PDF response status:', response.status);
-        console.log('PDF response data size:', response.data.size);
+        const response = await api.get(`/documents/${document.id}/view`, {
+          responseType: 'blob',
+          signal: abortControllerRef.current.signal
+        });
 
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         setPdfUrl(url);
-        console.log('PDF URL created:', url);
       } catch (error) {
+        // Ignore abort errors
+        if (error.name === 'CanceledError' || error.message?.includes('aborted')) {
+          return;
+        }
         console.error('Error loading PDF:', error);
-        console.error('Error response:', error.response);
         onError(`Failed to load PDF: ${error.response?.data?.message || error.message}`);
       } finally {
         setLoading(false);
@@ -40,7 +41,11 @@ const PDFViewer = ({ document, onError }) => {
 
     loadPDF();
 
+    // Cleanup function: abort ongoing request and revoke URL
     return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       if (pdfUrl) {
         window.URL.revokeObjectURL(pdfUrl);
       }
@@ -78,25 +83,29 @@ const ImageViewer = ({ document, onError }) => {
   const { api } = useAuth();
   const [imageUrl, setImageUrl] = useState(null);
   const [loading, setLoading] = useState(true);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
+    // Create new abort controller for this effect
+    abortControllerRef.current = new AbortController();
+
     const loadImage = async () => {
       try {
         setLoading(true);
-        console.log('Loading image for document:', document.id);
-        
-        const response = await api.get(`/documents/${document.id}/view`, {
-          responseType: 'blob'
-        });
 
-        console.log('Image response status:', response.status);
-        console.log('Image response data size:', response.data.size);
+        const response = await api.get(`/documents/${document.id}/view`, {
+          responseType: 'blob',
+          signal: abortControllerRef.current.signal
+        });
 
         const blob = new Blob([response.data]);
         const url = window.URL.createObjectURL(blob);
         setImageUrl(url);
-        console.log('Image URL created:', url);
       } catch (error) {
+        // Ignore abort errors
+        if (error.name === 'CanceledError' || error.message?.includes('aborted')) {
+          return;
+        }
         console.error('Error loading image:', error);
         console.error('Error response:', error.response);
         onError(`Failed to load image: ${error.response?.data?.message || error.message}`);
@@ -107,7 +116,11 @@ const ImageViewer = ({ document, onError }) => {
 
     loadImage();
 
+    // Cleanup function: abort ongoing request and revoke URL
     return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       if (imageUrl) {
         window.URL.revokeObjectURL(imageUrl);
       }

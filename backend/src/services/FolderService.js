@@ -338,6 +338,203 @@ class FolderService extends BaseService {
 
     return hierarchy;
   }
+
+  async copyFolder(folderId, userId, newParentId = null) {
+    // Check if user has access to the folder (must have editor permission, not owner)
+    const permission = await permissionService.getUserPermission(folderId, userId);
+
+    if (!permission) {
+      throw new Error('Folder not found or access denied');
+    }
+
+    if (permission === 'owner') {
+      throw new Error('Cannot copy your own folder. You already own it.');
+    }
+
+    if (permission !== 'editor') {
+      throw new Error('Only users with editor permission can copy folders');
+    }
+
+    // Get the original folder details
+    const folderResult = await pool.query(
+      'SELECT id, name FROM folders WHERE id = $1',
+      [folderId]
+    );
+
+    if (folderResult.rows.length === 0) {
+      throw new Error('Folder not found');
+    }
+
+    const originalFolder = folderResult.rows[0];
+
+    // If newParentId is provided, check access to target parent folder
+    if (newParentId) {
+      const access = await permissionService.checkFolderAccess(newParentId, userId);
+      if (!access) {
+        throw new Error('Target parent folder not found or access denied');
+      }
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Create a copy of the folder with a new name (append "- Copy")
+      let newFolderName = `${originalFolder.name} - Copy`;
+      let counter = 1;
+
+      // Check for naming conflicts
+      while (true) {
+        const duplicate = await client.query(
+          'SELECT id FROM folders WHERE name = $1 AND parent_id = $2 AND owner_id = $3',
+          [newFolderName, newParentId || null, userId]
+        );
+
+        if (duplicate.rows.length === 0) break;
+
+        counter++;
+        newFolderName = `${originalFolder.name} - Copy (${counter})`;
+      }
+
+      // Create the new folder
+      const newFolderResult = await client.query(
+        'INSERT INTO folders (name, parent_id, owner_id) VALUES ($1, $2, $3) RETURNING *',
+        [newFolderName, newParentId || null, userId]
+      );
+
+      const newFolder = newFolderResult.rows[0];
+
+      // Copy all documents from the original folder
+      await this.copyDocumentsRecursively(client, folderId, newFolder.id, userId);
+
+      // Copy all subfolders recursively
+      await this.copySubfoldersRecursively(client, folderId, newFolder.id, userId);
+
+      await client.query('COMMIT');
+
+      // Log user activity
+      await logUserActivity(userId, 'create_folder', {
+        description: `Copied shared folder: ${originalFolder.name} as ${newFolderName}`,
+        targetType: 'folder',
+        targetId: newFolder.id,
+        metadata: {
+          folderName: newFolderName,
+          originalFolderId: folderId,
+          originalFolderName: originalFolder.name
+        }
+      });
+
+      return newFolder;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async copyDocumentsRecursively(client, sourceFolderId, targetFolderId, userId) {
+    const fs = require('fs').promises;
+    const path = require('path');
+
+    // Get all documents from source folder
+    const documents = await client.query(
+      `SELECT d.id, d.title, d.file_name, d.file_path, d.file_type, d.file_size,
+              array_agg(l.name) FILTER (WHERE l.name IS NOT NULL) as labels
+       FROM documents d
+       LEFT JOIN document_labels dl ON d.id = dl.document_id
+       LEFT JOIN labels l ON dl.label_id = l.id
+       WHERE d.folder_id = $1
+       GROUP BY d.id`,
+      [sourceFolderId]
+    );
+
+    for (const doc of documents.rows) {
+      // Copy the physical file
+      let newFilePath = doc.file_path;
+
+      try {
+        if (doc.file_path && await fs.access(doc.file_path).then(() => true).catch(() => false)) {
+          const ext = path.extname(doc.file_path);
+          const timestamp = Date.now();
+          const randomStr = Math.random().toString(36).substring(7);
+          const newFileName = `${timestamp}_${randomStr}${ext}`;
+          const uploadDir = path.dirname(doc.file_path);
+          newFilePath = path.join(uploadDir, newFileName);
+
+          // Copy the file
+          await fs.copyFile(doc.file_path, newFilePath);
+        }
+      } catch (error) {
+        console.error(`Error copying file ${doc.file_path}:`, error);
+        // Continue even if file copy fails
+      }
+
+      // Insert new document
+      const newDocResult = await client.query(
+        `INSERT INTO documents (title, file_name, file_path, file_type, file_size, folder_id, uploader_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [doc.title, doc.file_name, newFilePath, doc.file_type, doc.file_size, targetFolderId, userId]
+      );
+
+      const newDocId = newDocResult.rows[0].id;
+
+      // Copy labels
+      if (doc.labels && doc.labels.length > 0) {
+        for (const labelName of doc.labels) {
+          if (labelName) {
+            // Get or create label
+            let labelResult = await client.query(
+              'SELECT id FROM labels WHERE name = $1 AND user_id = $2',
+              [labelName, userId]
+            );
+
+            let labelId;
+            if (labelResult.rows.length === 0) {
+              const newLabelResult = await client.query(
+                'INSERT INTO labels (name, user_id) VALUES ($1, $2) RETURNING id',
+                [labelName, userId]
+              );
+              labelId = newLabelResult.rows[0].id;
+            } else {
+              labelId = labelResult.rows[0].id;
+            }
+
+            // Associate label with document
+            await client.query(
+              'INSERT INTO document_labels (document_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+              [newDocId, labelId]
+            );
+          }
+        }
+      }
+    }
+  }
+
+  async copySubfoldersRecursively(client, sourceParentId, targetParentId, userId) {
+    // Get all subfolders
+    const subfolders = await client.query(
+      'SELECT id, name FROM folders WHERE parent_id = $1',
+      [sourceParentId]
+    );
+
+    for (const subfolder of subfolders.rows) {
+      // Create new subfolder
+      const newSubfolderResult = await client.query(
+        'INSERT INTO folders (name, parent_id, owner_id) VALUES ($1, $2, $3) RETURNING *',
+        [subfolder.name, targetParentId, userId]
+      );
+
+      const newSubfolder = newSubfolderResult.rows[0];
+
+      // Copy documents in this subfolder
+      await this.copyDocumentsRecursively(client, subfolder.id, newSubfolder.id, userId);
+
+      // Recursively copy nested subfolders
+      await this.copySubfoldersRecursively(client, subfolder.id, newSubfolder.id, userId);
+    }
+  }
 }
 
 module.exports = new FolderService();

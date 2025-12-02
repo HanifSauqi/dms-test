@@ -144,10 +144,39 @@ const deleteFolder = async (req, res) => {
   }
 };
 
+const copyFolder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { parentId } = req.body;
+    const userId = req.user.id;
+
+    const newFolder = await folderService.copyFolder(id, userId, parentId || null);
+
+    successResponse(res, 'Folder copied successfully', {
+      folder: {
+        id: newFolder.id,
+        name: newFolder.name,
+        parentId: newFolder.parent_id,
+        ownerId: newFolder.owner_id,
+        createdAt: newFolder.created_at
+      }
+    }, 201);
+  } catch (error) {
+    if (error.message.includes('permission') || error.message.includes('access denied') || error.message.includes('not found')) {
+      return errorResponse(res, error.message, 403);
+    }
+    if (error.message.includes('Cannot copy your own folder')) {
+      return errorResponse(res, error.message, 400);
+    }
+    errorResponse(res, 'Failed to copy folder', 500, error.message);
+  }
+};
+
 module.exports = {
   createFolder,
   getFolders,
   getFolderById,
   updateFolder,
-  deleteFolder
+  deleteFolder,
+  copyFolder
 };

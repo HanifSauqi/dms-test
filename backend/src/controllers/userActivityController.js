@@ -38,7 +38,7 @@ const getUserActivities = async (req, res) => {
 
     const result = await getUserActivityHistory(parseInt(userId), options);
 
-    return successResponse(res, result, 'User activities retrieved successfully');
+    return successResponse(res, 'User activities retrieved successfully', result);
   } catch (error) {
     console.error('Error in getUserActivities:', error);
     return errorResponse(res, 'Failed to retrieve user activities', 500);
@@ -66,7 +66,7 @@ const getUserStats = async (req, res) => {
 
     const stats = await getUserActivityStats(parseInt(userId), options);
 
-    return successResponse(res, stats, 'User statistics retrieved successfully');
+    return successResponse(res, 'User statistics retrieved successfully', stats);
   } catch (error) {
     console.error('Error in getUserStats:', error);
     return errorResponse(res, 'Failed to retrieve user statistics', 500);
@@ -88,7 +88,7 @@ const getAllUsersActivities = async (req, res) => {
 
     const result = await getAllUsersActivitySummary(options);
 
-    return successResponse(res, result, 'Users activity summary retrieved successfully');
+    return successResponse(res, 'Users activity summary retrieved successfully', result);
   } catch (error) {
     console.error('Error in getAllUsersActivities:', error);
     return errorResponse(res, 'Failed to retrieve users activities', 500);
@@ -105,7 +105,7 @@ const getRecentUserActivities = async (req, res) => {
 
     const activities = await getRecentActivities(parseInt(limit));
 
-    return successResponse(res, activities, 'Recent activities retrieved successfully');
+    return successResponse(res, 'Recent activities retrieved successfully', activities);
   } catch (error) {
     console.error('Error in getRecentUserActivities:', error);
     return errorResponse(res, 'Failed to retrieve recent activities', 500);

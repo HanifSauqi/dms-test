@@ -218,9 +218,10 @@ export default function DashboardLayout({ children }) {
             <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
           </div>
           <button
-            onClick={() => {
-              logout();
+            onClick={async () => {
               setShowProfileDropdown(false);
+              await logout();
+              router.push('/auth/login');
             }}
             className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-orange-50 flex items-center transition-colors"
           >

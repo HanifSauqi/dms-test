@@ -135,20 +135,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = useCallback(() => {
-    // Clear inactivity timer
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
+  const logout = useCallback(async () => {
+    try {
+      const api = getApi();
+      // Call backend logout endpoint to log the activity
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with logout even if API call fails
+    } finally {
+      // Clear inactivity timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+
+      // Clear storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
+      // Recreate API instance to ensure clean state
+      apiRef.current = createApiInstance();
+      setUser(null);
     }
-
-    // Clear storage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-
-    // Recreate API instance to ensure clean state
-    apiRef.current = createApiInstance();
-    setUser(null);
-  }, []);
+  }, [getApi]);
 
   const value = {
     user,

@@ -13,19 +13,17 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
   const [selectedUserId, setSelectedUserId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const [newUserPermission, setNewUserPermission] = useState('read');
+  const [newUserPermission, setNewUserPermission] = useState('viewer');
   const [sharing, setSharing] = useState(false);
 
   const permissionLabels = {
-    read: 'View only',
-    write: 'Can edit',
-    admin: 'Full access'
+    viewer: 'Viewer',
+    editor: 'Editor'
   };
 
   const permissionColors = {
-    read: 'text-green-600 bg-green-50',
-    write: 'text-blue-600 bg-blue-50',
-    admin: 'text-purple-600 bg-purple-50'
+    viewer: 'text-gray-600 bg-gray-50',
+    editor: 'text-blue-600 bg-blue-50'
   };
 
   const fetchAllUsers = useCallback(async () => {
@@ -148,7 +146,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
         await fetchPermissions();
         setSelectedUserId('');
         setSearchQuery('');
-        setNewUserPermission('read');
+        setNewUserPermission('viewer');
         setShowDropdown(false);
 
         if (onUpdate) onUpdate();
@@ -304,9 +302,8 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
                   onChange={(e) => setNewUserPermission(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
                 >
-                  <option value="read">View only</option>
-                  <option value="write">Can edit</option>
-                  <option value="admin">Full access</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
                 </select>
               </div>
 
@@ -392,9 +389,8 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
                       onChange={(e) => updatePermission(permission.user.id, e.target.value)}
                       className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
-                      <option value="read">View only</option>
-                      <option value="write">Can edit</option>
-                      <option value="admin">Full access</option>
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
                     </select>
                     
                     <button

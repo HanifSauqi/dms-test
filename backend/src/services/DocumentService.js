@@ -281,18 +281,8 @@ class DocumentService extends BaseService {
       return null;
     }
 
-    await logActivity(documentId, userId, 'viewed');
-
-    // Log user activity
-    await logUserActivity(userId, 'view_document', {
-      description: `Viewed document: ${doc.title}`,
-      targetType: 'document',
-      targetId: documentId,
-      metadata: {
-        fileName: doc.file_name,
-        folderId: doc.folder_id
-      }
-    });
+    // Note: Don't log here to avoid duplicate logging
+    // Logging is handled by viewDocument() when user actually views the document
 
     return doc;
   }

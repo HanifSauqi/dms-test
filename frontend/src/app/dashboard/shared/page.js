@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
+import {
   UserIcon,
   FolderIcon,
   DocumentIcon,
@@ -18,7 +18,8 @@ import {
   ArrowDownTrayIcon,
   TrashIcon,
   TagIcon,
-  EllipsisVerticalIcon
+  EllipsisVerticalIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline';
 import DropdownMenu from '@/components/DropdownMenu';
 import FileViewerModal from '@/components/FileViewerModal';
@@ -100,8 +101,8 @@ export default function SharedPage() {
       
       // Calculate stats
       const totalItems = folders.length + documents.length;
-      const readOnlyItems = [...folders, ...documents].filter(item => 
-        item.permissionLevel === 'read'
+      const readOnlyItems = [...folders, ...documents].filter(item =>
+        item.permissionLevel === 'viewer'
       ).length;
       const editableItems = totalItems - readOnlyItems;
       
@@ -128,24 +129,19 @@ export default function SharedPage() {
   // Permission level badge
   const getPermissionBadge = (permissionLevel) => {
     const config = {
-      read: {
-        text: 'View Only',
+      viewer: {
+        text: 'Viewer',
         bgColor: 'bg-gray-100',
         textColor: 'text-gray-700'
       },
-      write: {
-        text: 'Can Edit',
+      editor: {
+        text: 'Editor',
         bgColor: 'bg-blue-100',
         textColor: 'text-blue-700'
-      },
-      admin: {
-        text: 'Admin',
-        bgColor: 'bg-orange-100',
-        textColor: 'text-orange-700'
       }
     };
 
-    const { text, bgColor, textColor } = config[permissionLevel] || config.read;
+    const { text, bgColor, textColor } = config[permissionLevel] || config.viewer;
 
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${bgColor} ${textColor}`}>
@@ -176,39 +172,57 @@ export default function SharedPage() {
     }
   };
 
+  // Copy folder handler
+  const handleCopyFolder = async (folder) => {
+    if (!confirm(`Copy folder "${folder.name}" to your own folders?`)) return;
+
+    try {
+      const response = await api.post(`/folders/${folder.id}/copy`, {});
+
+      if (response.data.success) {
+        alert(`Folder "${folder.name}" has been copied successfully!`);
+        // Optionally, redirect to My Files to see the copied folder
+        router.push('/dashboard/files');
+      }
+    } catch (error) {
+      console.error('Error copying folder:', error);
+      alert(error.response?.data?.message || 'Failed to copy folder');
+    }
+  };
+
   // Get dropdown options based on permission level
   const getDropdownOptions = (item, type) => {
-    const canEdit = item.permissionLevel === 'admin' || item.permissionLevel === 'write';
+    const canEdit = item.permissionLevel === 'editor';
     const canView = true; // All shared items can be viewed
-    
+
     const options = [];
-    
+
     if (type === 'document') {
       options.push({
         label: 'View',
         icon: <EyeIcon className="h-4 w-4" />,
         action: 'view'
       });
-      
+
       options.push({
         label: 'Details',
         icon: <InformationCircleIcon className="h-4 w-4" />,
         action: 'details'
       });
-      
+
       options.push({
         label: 'Download',
         icon: <ArrowDownTrayIcon className="h-4 w-4" />,
         action: 'download'
       });
-      
+
       if (canEdit) {
         options.push({
           label: 'Edit',
           icon: <PencilIcon className="h-4 w-4" />,
           action: 'edit'
         });
-        
+
         options.push({
           label: 'Manage Labels',
           icon: <TagIcon className="h-4 w-4" />,
@@ -223,15 +237,23 @@ export default function SharedPage() {
           action: 'open'
         });
       }
+
+      if (canEdit) {
+        options.push({
+          label: 'Copy to My Folders',
+          icon: <DocumentDuplicateIcon className="h-4 w-4" />,
+          action: 'copy'
+        });
+      }
     }
-    
+
     return options;
   };
 
   // Handle item action
   const handleItemAction = (action, item, type) => {
     setSelectedDocument(item);
-    
+
     switch (action) {
       case 'view':
         setShowFileViewer(true);
@@ -251,6 +273,10 @@ export default function SharedPage() {
       case 'open':
         // Navigate to shared folder di halaman My Files
         router.push(`/dashboard/files?folderId=${item.id}`);
+        break;
+      case 'copy':
+        // Copy folder to user's own folders
+        handleCopyFolder(item);
         break;
     }
   };
@@ -394,7 +420,7 @@ export default function SharedPage() {
               <EyeIcon className="h-5 w-5 text-gray-600" />
             </div>
             <div className="ml-3">
-              <p className="text-xs font-medium text-gray-600">View Only</p>
+              <p className="text-xs font-medium text-gray-600">Viewer Access</p>
               <p className="text-xl font-bold text-gray-900">{stats.readOnlyItems}</p>
             </div>
           </div>
@@ -406,7 +432,7 @@ export default function SharedPage() {
               <PencilIcon className="h-5 w-5 text-blue-600" />
             </div>
             <div className="ml-3">
-              <p className="text-xs font-medium text-gray-600">Can Edit</p>
+              <p className="text-xs font-medium text-gray-600">Editor Access</p>
               <p className="text-xl font-bold text-gray-900">{stats.editableItems}</p>
             </div>
           </div>
@@ -427,15 +453,11 @@ export default function SharedPage() {
             <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4">
               <li className="flex items-start">
                 <span className="mr-2">•</span>
-                <span><strong>View Only</strong> - You can view and download the content</span>
+                <span><strong>Viewer</strong> - You can view and download the content</span>
               </li>
               <li className="flex items-start">
                 <span className="mr-2">•</span>
-                <span><strong>Can Edit</strong> - You can view, download, and modify content</span>
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2">•</span>
-                <span><strong>Admin</strong> - You have full control including sharing permissions</span>
+                <span><strong>Editor</strong> - You can view, download, modify content, and copy folders</span>
               </li>
             </ul>
           </div>
@@ -487,10 +509,12 @@ export default function SharedPage() {
                   {sharedFolders.map((folder) => (
                     <div
                       key={folder.id}
-                      className="group flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg cursor-pointer transition-all"
-                      onClick={() => handleItemClick(folder, 'folder')}
+                      className="group flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-all"
                     >
-                      <div className="flex items-center flex-1 min-w-0">
+                      <div
+                        className="flex items-center flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleItemClick(folder, 'folder')}
+                      >
                         <FolderIcon className="h-6 w-6 text-gray-500 flex-shrink-0 mr-3" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
@@ -501,9 +525,26 @@ export default function SharedPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 ml-4">
+                      <div className="flex items-center gap-2 ml-4">
                         {getPermissionBadge(folder.permissionLevel)}
-                        <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                        {folder.permissionLevel === 'editor' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyFolder(folder);
+                            }}
+                            className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Copy to My Folders"
+                          >
+                            <DocumentDuplicateIcon className="h-5 w-5 text-blue-600" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleItemClick(folder, 'folder')}
+                          className="p-1"
+                        >
+                          <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                        </button>
                       </div>
                     </div>
                   ))}

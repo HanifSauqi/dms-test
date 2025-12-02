@@ -5,9 +5,8 @@ class PermissionService extends BaseService {
   constructor() {
     super('folder_permissions');
     this.PERMISSION_LEVELS = {
-      READ: 'read',
-      WRITE: 'write',
-      ADMIN: 'admin'
+      VIEWER: 'viewer',
+      EDITOR: 'editor'
     };
   }
 
@@ -60,11 +59,11 @@ class PermissionService extends BaseService {
   }
 
   hasWritePermission(accessLevel) {
-    return ['owner', 'admin', 'write'].includes(accessLevel);
+    return ['owner', 'editor'].includes(accessLevel);
   }
 
   hasAdminPermission(accessLevel) {
-    return ['owner', 'admin'].includes(accessLevel);
+    return ['owner'].includes(accessLevel);
   }
 
   isOwner(accessLevel) {

@@ -4,7 +4,8 @@ const {
   getFolders,
   getFolderById,
   updateFolder,
-  deleteFolder
+  deleteFolder,
+  copyFolder
 } = require('../controllers/folderController');
 const {
   shareFolder,
@@ -27,6 +28,7 @@ router.get('/shared', getSharedFolders);
 router.get('/:id', getFolderById);
 router.put('/:id', updateFolder);
 router.delete('/:id', deleteFolder);
+router.post('/:id/copy', copyFolder);
 
 // Folder sharing operations
 router.post('/:folderId/share', shareFolder);

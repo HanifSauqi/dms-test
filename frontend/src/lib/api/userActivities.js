@@ -9,7 +9,7 @@ export const userActivitiesApi = {
    */
   getUserActivities: async (userId, params = {}) => {
     const response = await apiClient.get(`/user-activities/user/${userId}`, { params });
-    return response.data;
+    return response;
   },
 
   /**
