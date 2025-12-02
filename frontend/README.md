@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🎨 Frontend - Document Management System
 
-## Getting Started
+Web interface aplikasi DMS menggunakan Next.js dengan App Router.
 
-First, run the development server:
+## 🛠️ Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework:** Next.js 15 (App Router)
+- **UI Library:** React 19
+- **Styling:** TailwindCSS 4
+- **Icons:** Heroicons
+- **HTTP Client:** Axios
+- **State Management:** React Context API
+
+## 📁 Struktur Folder
+
+```
+frontend/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── page.js            # Login page
+│   │   ├── dashboard/         # Dashboard pages
+│   │   │   ├── files/         # File management
+│   │   │   ├── shared/        # Shared folders
+│   │   │   └── users/         # User management
+│   │   └── layout.js          # Root layout
+│   │
+│   ├── components/            # React components
+│   │   ├── FileViewerModal.js
+│   │   ├── FolderSharingModal.js
+│   │   └── Navbar.js
+│   │
+│   ├── contexts/              # React contexts
+│   │   └── AuthContext.js     # Authentication
+│   │
+│   └── lib/                   # Utilities
+│       ├── api/               # API functions
+│       └── axios.js           # Axios config
+│
+├── public/                    # Static assets
+├── .env.local                 # Environment variables
+└── package.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Quick Start
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```bash
+# Install dependencies
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Setup environment
+cp .env.example .env.local
 
-## Learn More
+# Run development server
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Aplikasi akan berjalan di `http://localhost:3000`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔧 Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_APP_NAME=Document Management System
+NEXT_PUBLIC_APP_VERSION=1.0.0
+```
 
-## Deploy on Vercel
+## 📝 Available Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run dev      # Development server
+npm run build    # Production build
+npm run start    # Production server
+npm run lint     # Run ESLint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🎯 Features
+
+- ✅ Authentication (Login/Register)
+- ✅ Folder management (Create, Edit, Delete)
+- ✅ Document upload & management
+- ✅ Folder sharing dengan permissions
+- ✅ User activity tracking
+- ✅ Responsive design
+- ✅ Dark mode support
+
+## 🔗 API Integration
+
+Frontend berkomunikasi dengan backend melalui REST API:
+- Base URL: `http://localhost:3001/api`
+- Authentication: JWT Token (stored in localStorage)
+- Auto-refresh token handling
+
+## 📱 Responsive Design
+
+- Desktop: Full features
+- Tablet: Optimized layout
+- Mobile: Touch-friendly interface

@@ -326,13 +326,6 @@ docker logs dms-postgres
 docker exec -it dms-postgres psql -U postgres -d dms_db
 ```
 
-## 📚 Dokumentasi Lengkap
-
-Untuk dokumentasi lebih detail:
-- **[CONFIGURATION.md](CONFIGURATION.md)** - Konfigurasi lengkap
-- **[database/README.md](database/README.md)** - Database schema
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Quick commands
-
 ## 💡 Tips
 
 ### Development
