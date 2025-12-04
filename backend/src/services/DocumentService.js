@@ -149,7 +149,7 @@ class DocumentService extends BaseService {
       LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id
       WHERE (
         d.owner_id = $1
-        OR (fp.user_id = $1 AND fp.permission_level IN ('read', 'write', 'admin'))
+        OR (fp.user_id = $1 AND fp.permission_level IN ('viewer', 'editor', 'owner'))
       )
     `;
 
@@ -196,7 +196,7 @@ class DocumentService extends BaseService {
       LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id
       WHERE (
         d.owner_id = $1
-        OR (fp.user_id = $1 AND fp.permission_level IN ('read', 'write', 'admin'))
+        OR (fp.user_id = $1 AND fp.permission_level IN ('viewer', 'editor', 'owner'))
       )
     `;
 
@@ -405,7 +405,7 @@ class DocumentService extends BaseService {
       LEFT JOIN labels l ON dl.label_id = l.id
       WHERE fp.user_id = $1
         AND d.owner_id != $1
-        AND fp.permission_level IN ('read', 'write', 'admin')
+        AND fp.permission_level IN ('viewer', 'editor', 'owner')
       GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content,
         d.folder_id, d.owner_id, d.created_at, d.updated_at,
         f.name, u.email, u.name, fp.permission_level
@@ -422,7 +422,7 @@ class DocumentService extends BaseService {
       JOIN folder_permissions fp ON d.folder_id = fp.folder_id
       WHERE fp.user_id = $1
         AND d.owner_id != $1
-        AND fp.permission_level IN ('read', 'write', 'admin')
+        AND fp.permission_level IN ('viewer', 'editor', 'owner')
     `;
 
     const countResult = await pool.query(countQuery, [userId]);

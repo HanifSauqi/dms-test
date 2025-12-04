@@ -440,7 +440,7 @@ class FolderService extends BaseService {
 
     // Get all documents from source folder
     const documents = await client.query(
-      `SELECT d.id, d.title, d.file_name, d.file_path, d.file_type, d.file_size,
+      `SELECT d.id, d.title, d.file_name, d.file_path,
               array_agg(l.name) FILTER (WHERE l.name IS NOT NULL) as labels
        FROM documents d
        LEFT JOIN document_labels dl ON d.id = dl.document_id
@@ -473,9 +473,9 @@ class FolderService extends BaseService {
 
       // Insert new document
       const newDocResult = await client.query(
-        `INSERT INTO documents (title, file_name, file_path, file_type, file_size, folder_id, uploader_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [doc.title, doc.file_name, newFilePath, doc.file_type, doc.file_size, targetFolderId, userId]
+        `INSERT INTO documents (title, file_name, file_path, folder_id, owner_id)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [doc.title, doc.file_name, newFilePath, targetFolderId, userId]
       );
 
       const newDocId = newDocResult.rows[0].id;

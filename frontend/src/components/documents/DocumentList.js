@@ -13,7 +13,8 @@ import {
   EllipsisVerticalIcon,
   InformationCircleIcon,
   Squares2X2Icon,
-  ListBulletIcon
+  ListBulletIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline';
 import DropdownMenu from '@/components/DropdownMenu';
 import { showSuccess, showError } from '@/utils/toast';
@@ -28,6 +29,7 @@ export default function DocumentList({
   onFolderEdit,
   onFolderDelete,
   onFolderShare,
+  onFolderCopy,
   onDocumentView,
   onDocumentEdit,
   onDocumentDelete,
@@ -80,6 +82,9 @@ export default function DocumentList({
           break;
         case 'share':
           onFolderShare && onFolderShare(folder);
+          break;
+        case 'copy':
+          if (onFolderCopy) await onFolderCopy(folder);
           break;
         default:
           console.warn(`Unknown folder action: ${action}`);
@@ -215,7 +220,10 @@ export default function DocumentList({
         {/* Grid View */}
         {viewMode === 'grid' && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8">
-            {folderList.map((folder) => (
+            {folderList.map((folder) => {
+              // Get actual permission level for each folder (for shared folders)
+              const actualAccessLevel = folder.accessLevel || folder.access_level || folder.permissionLevel || folderAccessLevel;
+              return (
               <div
                 key={folder.id}
                 className="group flex flex-col items-center cursor-pointer"
@@ -245,13 +253,19 @@ export default function DocumentList({
                           onClick: () => handleFolderAction('edit', folder),
                           disabled: actionLoading === `edit-folder-${folder.id}`
                         },
-                        ...(folderAccessLevel === 'owner' ? [{
+                        ...(actualAccessLevel === 'owner' ? [{
                           label: 'Share',
                           icon: ShareIcon,
                           onClick: () => handleFolderAction('share', folder),
                           disabled: actionLoading === `share-folder-${folder.id}`
                         }] : []),
-                        ...(folderAccessLevel === 'owner' ? [{
+                        ...(actualAccessLevel === 'editor' || actualAccessLevel === 'owner' ? [{
+                          label: 'Copy to My Folders',
+                          icon: DocumentDuplicateIcon,
+                          onClick: () => handleFolderAction('copy', folder),
+                          disabled: actionLoading === `copy-folder-${folder.id}`
+                        }] : []),
+                        ...(actualAccessLevel === 'owner' ? [{
                           label: 'Delete',
                           icon: TrashIcon,
                           onClick: () => handleFolderAction('delete', folder),
@@ -272,7 +286,8 @@ export default function DocumentList({
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
 
@@ -298,7 +313,10 @@ export default function DocumentList({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
-                {folderList.map((folder) => (
+                {folderList.map((folder) => {
+                  // Get actual permission level for each folder (for shared folders)
+                  const actualAccessLevel = folder.accessLevel || folder.access_level || folder.permissionLevel || folderAccessLevel;
+                  return (
                   <tr
                     key={folder.id}
                     className="hover:bg-gray-50 cursor-pointer transition-colors"
@@ -333,13 +351,19 @@ export default function DocumentList({
                               onClick: () => handleFolderAction('edit', folder),
                               disabled: actionLoading === `edit-folder-${folder.id}`
                             },
-                            ...(folderAccessLevel === 'owner' ? [{
+                            ...(actualAccessLevel === 'owner' ? [{
                               label: 'Share',
                               icon: ShareIcon,
                               onClick: () => handleFolderAction('share', folder),
                               disabled: actionLoading === `share-folder-${folder.id}`
                             }] : []),
-                            ...(folderAccessLevel === 'owner' ? [{
+                            ...(actualAccessLevel === 'editor' || actualAccessLevel === 'owner' ? [{
+                              label: 'Copy to My Folders',
+                              icon: DocumentDuplicateIcon,
+                              onClick: () => handleFolderAction('copy', folder),
+                              disabled: actionLoading === `copy-folder-${folder.id}`
+                            }] : []),
+                            ...(actualAccessLevel === 'owner' ? [{
                               label: 'Delete',
                               icon: TrashIcon,
                               onClick: () => handleFolderAction('delete', folder),
@@ -360,7 +384,8 @@ export default function DocumentList({
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             </div>

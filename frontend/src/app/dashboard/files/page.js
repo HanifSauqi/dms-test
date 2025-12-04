@@ -284,6 +284,27 @@ export default function DashboardPage() {
     setShowFolderSharingModal(true);
   };
 
+  const handleFolderCopy = async (folder) => {
+    if (!window.confirm(`Copy folder "${folder.name}" to your own folders?`)) {
+      return;
+    }
+
+    try {
+      const { api } = await import('@/lib/api/client');
+      const response = await api.post(`/folders/${folder.id}/copy`, {});
+
+      // response is already the data object (not response.data) due to axios interceptor
+      if (response.success) {
+        showSuccess(`Folder "${folder.name}" has been copied successfully!`);
+        // Refresh the file list and wait for it to complete
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Error copying folder:', error);
+      showError(error.message || 'Failed to copy folder');
+    }
+  };
+
   const handleDocumentView = (document) => {
     setSelectedDocument(document);
     setShowFileViewer(true);
@@ -507,6 +528,7 @@ export default function DashboardPage() {
           onFolderEdit={handleFolderEdit}
           onFolderDelete={handleFolderDelete}
           onFolderShare={handleFolderShare}
+          onFolderCopy={handleFolderCopy}
           onDocumentView={handleDocumentView}
           onDocumentEdit={handleDocumentEdit}
           onDocumentDelete={handleDocumentDelete}
