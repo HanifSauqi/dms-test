@@ -111,11 +111,12 @@ const createUser = async (req, res) => {
 
 /**
  * Get all users (superadmin only)
+ * Only returns active users (not soft deleted)
  */
 const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC'
     );
 
     successResponse(res, 'Users retrieved successfully', {
@@ -131,13 +132,14 @@ const getAllUsers = async (req, res) => {
 
 /**
  * Get single user by ID (superadmin only)
+ * Only returns active users (not soft deleted)
  */
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, role, created_at FROM users WHERE id = $1 AND deleted_at IS NULL',
       [id]
     );
 
@@ -264,7 +266,8 @@ const updateUser = async (req, res) => {
 };
 
 /**
- * Delete user (superadmin only)
+ * Soft delete user (superadmin only)
+ * Moves user to trash instead of permanent deletion
  */
 const deleteUser = async (req, res) => {
   try {
@@ -275,9 +278,9 @@ const deleteUser = async (req, res) => {
       return errorResponse(res, 'You cannot delete your own account', 400);
     }
 
-    // Check if user exists and get data for logging
+    // Check if user exists and is not already deleted
     const existingUser = await pool.query(
-      'SELECT id, name, email, role FROM users WHERE id = $1',
+      'SELECT id, name, email, role, deleted_at FROM users WHERE id = $1',
       [id]
     );
 
@@ -285,29 +288,169 @@ const deleteUser = async (req, res) => {
       return errorResponse(res, 'User not found', 404);
     }
 
-    const deletedUser = existingUser.rows[0];
+    const user = existingUser.rows[0];
 
-    // Log user activity before deletion
+    // Check if already deleted
+    if (user.deleted_at !== null) {
+      return errorResponse(res, 'User is already in trash', 400);
+    }
+
+    // Soft delete: set deleted_at timestamp
+    await pool.query(
+      'UPDATE users SET deleted_at = NOW() WHERE id = $1',
+      [id]
+    );
+
+    // Log user activity
     await logUserActivity(req.user.id, 'delete_user', {
-      description: `Deleted user: ${deletedUser.name} (${deletedUser.email})`,
+      description: `Moved user to trash: ${user.name} (${user.email})`,
       targetType: 'user',
       targetId: id,
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('user-agent'),
       metadata: {
-        deletedUserName: deletedUser.name,
-        deletedUserEmail: deletedUser.email,
-        deletedUserRole: deletedUser.role
+        deletedUserName: user.name,
+        deletedUserEmail: user.email,
+        deletedUserRole: user.role,
+        deletionType: 'soft'
       }
     });
 
-    await pool.query('DELETE FROM users WHERE id = $1', [id]);
-
-    successResponse(res, 'User deleted successfully');
+    successResponse(res, 'User moved to trash successfully');
 
   } catch (error) {
     console.error('Delete user error:', error);
     errorResponse(res, 'Failed to delete user', 500, error.message);
+  }
+};
+
+/**
+ * Get all deleted users in trash (superadmin only)
+ */
+const getTrashUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role, created_at, deleted_at FROM users WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'
+    );
+
+    successResponse(res, 'Trash users retrieved successfully', {
+      users: result.rows,
+      total: result.rows.length
+    });
+
+  } catch (error) {
+    console.error('Get trash users error:', error);
+    errorResponse(res, 'Failed to retrieve trash users', 500, error.message);
+  }
+};
+
+/**
+ * Restore user from trash (superadmin only)
+ */
+const restoreUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists and is in trash
+    const existingUser = await pool.query(
+      'SELECT id, name, email, role, deleted_at FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (existingUser.rows.length === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    const user = existingUser.rows[0];
+
+    // Check if user is in trash
+    if (user.deleted_at === null) {
+      return errorResponse(res, 'User is not in trash', 400);
+    }
+
+    // Restore: set deleted_at to NULL
+    await pool.query(
+      'UPDATE users SET deleted_at = NULL WHERE id = $1',
+      [id]
+    );
+
+    // Log user activity
+    await logUserActivity(req.user.id, 'edit_user', {
+      description: `Restored user from trash: ${user.name} (${user.email})`,
+      targetType: 'user',
+      targetId: id,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      metadata: {
+        restoredUserName: user.name,
+        restoredUserEmail: user.email,
+        restoredUserRole: user.role,
+        deletedAt: user.deleted_at
+      }
+    });
+
+    successResponse(res, 'User restored successfully');
+
+  } catch (error) {
+    console.error('Restore user error:', error);
+    errorResponse(res, 'Failed to restore user', 500, error.message);
+  }
+};
+
+/**
+ * Permanently delete user from trash (superadmin only)
+ * This is irreversible and will delete all related data
+ */
+const permanentDeleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting yourself
+    if (parseInt(id) === req.user.id) {
+      return errorResponse(res, 'You cannot permanently delete your own account', 400);
+    }
+
+    // Check if user exists and is in trash
+    const existingUser = await pool.query(
+      'SELECT id, name, email, role, deleted_at FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (existingUser.rows.length === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    const user = existingUser.rows[0];
+
+    // Only allow permanent deletion if user is in trash
+    if (user.deleted_at === null) {
+      return errorResponse(res, 'User must be in trash before permanent deletion', 400);
+    }
+
+    // Log user activity before permanent deletion
+    await logUserActivity(req.user.id, 'delete_user', {
+      description: `Permanently deleted user: ${user.name} (${user.email})`,
+      targetType: 'user',
+      targetId: id,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      metadata: {
+        deletedUserName: user.name,
+        deletedUserEmail: user.email,
+        deletedUserRole: user.role,
+        deletionType: 'permanent',
+        deletedAt: user.deleted_at
+      }
+    });
+
+    // Permanent delete: actually remove from database
+    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+
+    successResponse(res, 'User permanently deleted successfully');
+
+  } catch (error) {
+    console.error('Permanent delete user error:', error);
+    errorResponse(res, 'Failed to permanently delete user', 500, error.message);
   }
 };
 
@@ -316,5 +459,8 @@ module.exports = {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  getTrashUsers,
+  restoreUser,
+  permanentDeleteUser
 };

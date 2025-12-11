@@ -12,7 +12,8 @@ import {
   ArrowRightOnRectangleIcon,
   CogIcon,
   HomeIcon,
-  UsersIcon
+  UsersIcon,
+  ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { Montserrat } from 'next/font/google';
@@ -174,19 +175,35 @@ export default function DashboardLayout({ children }) {
 
             {/* User Management - Superadmin Only */}
             {user?.role === 'superadmin' && (
-              <Link
-                href="/dashboard/users"
-                className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                  isActive('/dashboard/users')
-                    ? 'text-orange-600 bg-red-100'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                  isActive('/dashboard/users') ? 'text-orange-600' : 'text-gray-500'
-                }`} />
-                User Management
-              </Link>
+              <>
+                <Link
+                  href="/dashboard/users"
+                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
+                    isActive('/dashboard/users')
+                      ? 'text-orange-600 bg-red-100'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                    isActive('/dashboard/users') ? 'text-orange-600' : 'text-gray-500'
+                  }`} />
+                  User Management
+                </Link>
+
+                <Link
+                  href="/dashboard/trash"
+                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
+                    isActive('/dashboard/trash')
+                      ? 'text-orange-600 bg-red-100'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <ArchiveBoxIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                    isActive('/dashboard/trash') ? 'text-orange-600' : 'text-gray-500'
+                  }`} />
+                  Trash
+                </Link>
+              </>
             )}
           </div>
         </nav>

@@ -1,9 +1,14 @@
 import { api } from './client';
 
 export const usersApi = {
-  // Get all users (superadmin only)
+  // Get all active users (superadmin only)
   getAllUsers: () => {
     return api.get('/users');
+  },
+
+  // Get all deleted users in trash (superadmin only)
+  getTrashUsers: () => {
+    return api.get('/users/trash');
   },
 
   // Get user by ID (superadmin only)
@@ -21,9 +26,19 @@ export const usersApi = {
     return api.put(`/users/${userId}`, userData);
   },
 
-  // Delete user (superadmin only)
+  // Soft delete user - move to trash (superadmin only)
   deleteUser: (userId) => {
     return api.delete(`/users/${userId}`);
+  },
+
+  // Restore user from trash (superadmin only)
+  restoreUser: (userId) => {
+    return api.post(`/users/${userId}/restore`);
+  },
+
+  // Permanently delete user from trash (superadmin only)
+  permanentDeleteUser: (userId) => {
+    return api.delete(`/users/${userId}/permanent`);
   },
 };
 

@@ -99,14 +99,14 @@ export default function UserManagementPage() {
   };
 
   const handleDeleteUser = async (userId, userName) => {
-    if (!confirm(`Are you sure you want to delete user "${userName}"?`)) {
+    if (!confirm(`Are you sure you want to move user "${userName}" to trash?\n\nYou can restore the user from the Trash page later.`)) {
       return;
     }
 
     try {
       const response = await usersApi.deleteUser(userId);
       if (response.success) {
-        setSuccess('User deleted successfully!');
+        setSuccess('User moved to trash successfully!');
         await fetchUsers(); // Refresh the list
         setTimeout(() => setSuccess(''), 3000);
       }
