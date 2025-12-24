@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   ChartBarIcon,
   PlusIcon,
@@ -12,26 +11,23 @@ import {
   DocumentChartBarIcon
 } from '@heroicons/react/24/outline';
 import DropdownMenu from '@/components/DropdownMenu';
+import { reportApi } from '@/lib/api';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function ReportPage() {
-  const { api } = useAuth();
   const router = useRouter();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadReports = useCallback(() => {
-    const defaultReports = [];
+  const loadReports = useCallback(async () => {
     try {
-      const savedReports = localStorage.getItem('customReports');
-      if (savedReports) {
-        const parsed = JSON.parse(savedReports);
-        setReports([...defaultReports, ...parsed]);
-      } else {
-        setReports(defaultReports);
-      }
+      setLoading(true);
+      const response = await reportApi.getAll();
+      setReports(response.data?.reports || response.reports || []);
     } catch (error) {
       console.error('Error loading reports:', error);
-      setReports(defaultReports);
+      showError('Failed to load reports');
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -45,29 +41,18 @@ export default function ReportPage() {
     router.push(`/dashboard/report/${report.id}`);
   };
 
-  const handleDeleteReport = (report) => {
+  const handleDeleteReport = async (report) => {
     if (!confirm(`Are you sure you want to delete "${report.name}"?\n\nThis action cannot be undone.`)) {
       return;
     }
 
     try {
-      const savedReports = localStorage.getItem('customReports');
-      if (savedReports) {
-        const parsed = JSON.parse(savedReports);
-        const filtered = parsed.filter(r => r.id !== report.id);
-        localStorage.setItem('customReports', JSON.stringify(filtered));
-
-        // Show success message
-        alert(`Report "${report.name}" has been deleted successfully`);
-
-        // Reload reports
-        loadReports();
-      } else {
-        alert('No reports found to delete');
-      }
+      await reportApi.delete(report.id);
+      showSuccess(`Report "${report.name}" deleted successfully`);
+      loadReports();
     } catch (error) {
       console.error('Error deleting report:', error);
-      alert('Failed to delete report. Please try again.');
+      showError('Failed to delete report');
     }
   };
 
@@ -144,7 +129,7 @@ export default function ReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
           <p className="text-sm text-gray-600 mt-1">
             Statistical reports based on document keywords and time ranges
           </p>
@@ -193,7 +178,7 @@ export default function ReportPage() {
               <div className="flex items-center text-xs text-gray-500 flex-wrap">
                 <span className="font-medium">Keywords:</span>
                 <div className="ml-2 flex flex-wrap gap-1 items-center">
-                  {report.keywords.map((keyword, index) => (
+                  {(report.keywords || []).map((keyword, index) => (
                     <span key={index} className="flex items-center gap-1">
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
                         {keyword}
@@ -208,7 +193,7 @@ export default function ReportPage() {
               <div className="flex items-center text-xs text-gray-500">
                 <span className="font-medium">Time Range:</span>
                 <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                  {getTimeRangeLabel(report.timeRange)}
+                  {getTimeRangeLabel(report.time_range || report.timeRange)}
                 </span>
               </div>
             </div>

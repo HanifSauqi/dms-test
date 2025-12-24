@@ -26,7 +26,8 @@ const createLabel = async (req, res) => {
 
 const getLabels = async (req, res) => {
   try {
-    const labels = await labelService.getLabels();
+    const userId = req.user.id;
+    const labels = await labelService.getLabels(userId);
 
     successResponse(res, 'Labels retrieved successfully', { labels });
   } catch (error) {
@@ -37,8 +38,9 @@ const getLabels = async (req, res) => {
 const getLabelById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
-    const labelData = await labelService.getLabelById(id);
+    const labelData = await labelService.getLabelById(id, userId);
 
     successResponse(res, 'Label retrieved successfully', {
       label: {
@@ -60,12 +62,13 @@ const updateLabel = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, color } = req.body;
+    const userId = req.user.id;
 
     if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
       return errorResponse(res, 'Invalid color format. Use hex format like #FF5733', 400);
     }
 
-    const label = await labelService.updateLabel(id, { name, color });
+    const label = await labelService.updateLabel(id, { name, color }, userId);
 
     successResponse(res, 'Label updated successfully', { label });
   } catch (error) {
@@ -85,8 +88,9 @@ const updateLabel = async (req, res) => {
 const deleteLabel = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
-    await labelService.deleteLabel(id);
+    await labelService.deleteLabel(id, userId);
 
     successResponse(res, 'Label deleted successfully');
   } catch (error) {

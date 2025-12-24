@@ -7,6 +7,8 @@ import {
   PlusIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { reportApi } from '@/lib/api';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function EditReportPage() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function EditReportPage() {
   const reportId = params.id;
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -23,52 +26,26 @@ export default function EditReportPage() {
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState({});
 
-  // Default report (MCU report cannot be edited)
-  const defaultReports = {
-    'mcu-report': {
-      id: 'mcu-report',
-      name: 'MCU Statistical Report',
-      keywords: ['MCU', 'fit'],
-      timeRange: 'monthly',
-      description: 'Monthly report for MCU fit documents'
-    }
-  };
-
-  const loadReport = useCallback(() => {
+  const loadReport = useCallback(async () => {
     try {
       setLoading(true);
+      const response = await reportApi.getById(reportId);
+      const report = response.data?.report || response.report;
 
-      // Check if it's default report
-      if (reportId === 'mcu-report') {
-        alert('Cannot edit default report');
-        router.push('/dashboard/report');
-        return;
-      }
-
-      // Load from localStorage
-      const savedReports = localStorage.getItem('customReports');
-      if (savedReports) {
-        const reports = JSON.parse(savedReports);
-        const report = reports.find(r => r.id === reportId);
-
-        if (report) {
-          setFormData({
-            name: report.name,
-            description: report.description || '',
-            keywords: report.keywords || [],
-            timeRange: report.timeRange || 'monthly'
-          });
-        } else {
-          alert('Report not found');
-          router.push('/dashboard/report');
-        }
+      if (report) {
+        setFormData({
+          name: report.name,
+          description: report.description || '',
+          keywords: report.keywords || [],
+          timeRange: report.time_range || report.timeRange || 'monthly'
+        });
       } else {
-        alert('Report not found');
+        showError('Report not found');
         router.push('/dashboard/report');
       }
     } catch (error) {
       console.error('Error loading report:', error);
-      alert('Failed to load report');
+      showError('Failed to load report');
       router.push('/dashboard/report');
     } finally {
       setLoading(false);
@@ -125,39 +102,28 @@ export default function EditReportPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     try {
-      // Update in localStorage
-      const savedReports = localStorage.getItem('customReports');
-      if (savedReports) {
-        const reports = JSON.parse(savedReports);
-        const reportIndex = reports.findIndex(r => r.id === reportId);
+      setSaving(true);
 
-        if (reportIndex !== -1) {
-          reports[reportIndex] = {
-            ...reports[reportIndex],
-            name: formData.name,
-            description: formData.description,
-            keywords: formData.keywords,
-            timeRange: formData.timeRange,
-            updatedAt: new Date().toISOString()
-          };
+      await reportApi.update(reportId, {
+        name: formData.name.trim(),
+        description: formData.description,
+        keywords: formData.keywords,
+        timeRange: formData.timeRange
+      });
 
-          localStorage.setItem('customReports', JSON.stringify(reports));
-
-          // Redirect back to report detail
-          router.push(`/dashboard/report/${reportId}`);
-        } else {
-          alert('Report not found');
-        }
-      }
+      showSuccess('Report updated successfully');
+      router.push(`/dashboard/report/${reportId}`);
     } catch (error) {
       console.error('Error updating report:', error);
-      alert('Failed to update report');
+      showError(error.message || 'Failed to update report');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -208,9 +174,9 @@ export default function EditReportPage() {
           </div>
         </div>
         <div className="ml-4">
-          <h1 className="text-2xl font-bold text-gray-900">Edit Report</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Edit Report</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Update report settings, keywords, and time range
+            Modify report keywords and settings
           </p>
         </div>
       </div>
@@ -227,9 +193,8 @@ export default function EditReportPage() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 sm:px-3 sm:py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="e.g., MCU Statistical Report"
             />
             {errors.name && (
@@ -246,7 +211,7 @@ export default function EditReportPage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Brief description of this report"
             />
           </div>
@@ -265,9 +230,8 @@ export default function EditReportPage() {
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className={`flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                  errors.keyword || errors.keywords ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`flex-1 px-3 py-2.5 sm:px-3 sm:py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.keyword || errors.keywords ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="Enter keyword and press Enter or click Add"
               />
               <button
@@ -320,7 +284,7 @@ export default function EditReportPage() {
             <select
               value={formData.timeRange}
               onChange={(e) => setFormData({ ...formData, timeRange: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="daily">Daily (Last 7 days)</option>
               <option value="weekly">Weekly (Last 7 weeks)</option>
@@ -334,9 +298,10 @@ export default function EditReportPage() {
         <div className="mt-6 flex gap-3">
           <button
             type="submit"
-            className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+            disabled={saving}
+            className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
           >
-            Save Changes
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
             type="button"

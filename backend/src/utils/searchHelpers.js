@@ -46,7 +46,6 @@ Now extract from the query above:`;
     }
 
     const nouns = JSON.parse(jsonMatch[0]);
-    console.log(`✅ Extracted nouns: ${nouns.join(', ')}`);
     return nouns;
 
   } catch (error) {

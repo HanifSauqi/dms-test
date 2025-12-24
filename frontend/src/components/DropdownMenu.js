@@ -112,7 +112,7 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
       >
         {trigger || (
           <button
-            className="p-1.5 rounded-full hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+            className="p-2 md:p-1.5 rounded-full hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
             aria-label="More options"
           >
             <EllipsisVerticalIcon className="h-5 w-5 text-white" />

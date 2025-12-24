@@ -6,6 +6,7 @@ export { default as labelApi } from './labels';
 export { default as authApi } from './auth';
 export { default as usersApi } from './users';
 export { default as userActivitiesApi } from './userActivities';
+export { default as reportApi } from './reports';
 
 // Re-export for convenience
 export * from './client';
@@ -15,3 +16,4 @@ export * from './labels';
 export * from './auth';
 export * from './users';
 export * from './userActivities';
+export * from './reports';

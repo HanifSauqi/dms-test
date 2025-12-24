@@ -313,7 +313,7 @@ export default function FileViewerModal({ document, isOpen, onClose }) {
     <div className="fixed inset-0 bg-black bg-opacity-75 overflow-hidden z-50 flex items-center justify-center">
       <div className="relative w-full h-full max-w-6xl max-h-screen bg-white flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white">
+        <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 bg-white">
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 truncate">
               {document.title}
@@ -336,10 +336,10 @@ export default function FileViewerModal({ document, isOpen, onClose }) {
             
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 md:p-1.5 rounded-full hover:bg-gray-100 transition-colors"
               title="Close"
             >
-              <XMarkIcon className="h-5 w-5 text-gray-500" />
+              <XMarkIcon className="h-6 w-6 md:h-5 md:w-5 text-gray-500" />
             </button>
           </div>
         </div>

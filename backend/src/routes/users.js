@@ -9,7 +9,8 @@ const {
   deleteUser,
   getTrashUsers,
   restoreUser,
-  permanentDeleteUser
+  permanentDeleteUser,
+  toggleUserStatus
 } = require('../controllers/userController');
 
 // Special route for folder sharing - accessible by all authenticated users
@@ -28,5 +29,6 @@ router.put('/:id', updateUser);                    // Update user
 router.delete('/:id', deleteUser);                 // Soft delete user (move to trash)
 router.post('/:id/restore', restoreUser);          // Restore user from trash
 router.delete('/:id/permanent', permanentDeleteUser); // Permanently delete user from trash
+router.patch('/:id/status', toggleUserStatus);     // Toggle user status (enable/disable)
 
 module.exports = router;

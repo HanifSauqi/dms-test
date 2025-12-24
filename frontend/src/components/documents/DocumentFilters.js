@@ -64,15 +64,15 @@ export default function DocumentFilters({
   const hasActiveFilters = currentSearch || currentFolderId || currentLabels.length > 0;
 
   return (
-    <div className="mb-6">
+    <div>
       <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black z-10" />
         <input
           type="text"
           placeholder="Search Document"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-md text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:border-gray-300 focus:shadow-md bg-gray-100 shadow-md hover:shadow-xl transition-shadow duration-200"
         />
       </div>
     </div>

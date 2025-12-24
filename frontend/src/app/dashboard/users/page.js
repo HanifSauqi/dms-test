@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usersApi } from '@/lib/api';
 import { PlusIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronRightIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function UserManagementPage() {
   const { user } = useAuth();
@@ -20,7 +21,6 @@ export default function UserManagementPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect if not superadmin
@@ -73,7 +73,6 @@ export default function UserManagementPage() {
     e.preventDefault();
     setSubmitting(true);
     setError('');
-    setSuccess('');
 
     try {
       const response = await usersApi.createUser(formData);
@@ -82,17 +81,14 @@ export default function UserManagementPage() {
         setFormData({ name: '', email: '', password: '', role: 'user' });
         setShowAddModal(false);
 
-        // Show success message
-        setSuccess('User created successfully!');
+        // Show success toast
+        showSuccess('User created successfully!');
 
         // Refresh the list
         await fetchUsers();
-
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
-      setError(error?.message || 'Failed to create user');
+      showError(error?.message || 'Failed to create user');
     } finally {
       setSubmitting(false);
     }
@@ -106,13 +102,33 @@ export default function UserManagementPage() {
     try {
       const response = await usersApi.deleteUser(userId);
       if (response.success) {
-        setSuccess('User moved to trash successfully!');
+        showSuccess('User moved to trash successfully!');
         await fetchUsers(); // Refresh the list
-        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
-      setError(error?.message || 'Failed to delete user');
-      setTimeout(() => setError(''), 3000);
+      showError(error?.message || 'Failed to delete user');
+    }
+  };
+
+  const handleToggleStatus = async (userId, userName, currentStatus) => {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'enable' : 'disable';
+
+    if (!confirm(`Are you sure you want to ${action} user "${userName}"?\n\n${newStatus
+      ? 'The user will be able to login again.'
+      : 'The user will not be able to login until re-enabled.'
+      }`)) {
+      return;
+    }
+
+    try {
+      const response = await usersApi.toggleUserStatus(userId, newStatus);
+      if (response.success) {
+        showSuccess(`User ${action}d successfully!`);
+        await fetchUsers(); // Refresh the list
+      }
+    } catch (error) {
+      showError(error?.message || `Failed to ${action} user`);
     }
   };
 
@@ -152,105 +168,125 @@ export default function UserManagementPage() {
         </ol>
       </nav>
 
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
           <p className="text-sm text-gray-600 mt-1">Manage user accounts and permissions</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+          className="flex items-center px-4 py-2.5 sm:py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors w-full sm:w-auto justify-center"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           Add User
         </button>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 p-4">
-          <div className="text-sm text-green-800">{success}</div>
-        </div>
-      )}
-
-      {error && !showAddModal && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4">
-          <div className="text-sm text-red-800">{error}</div>
-        </div>
-      )}
-
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{u.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-600">{u.email}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    u.role === 'superadmin'
+      <div className="bg-white rounded-lg shadow">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created At
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.map((u) => (
+                <tr key={u.id} className={`hover:bg-gray-50 ${!u.is_active ? 'opacity-60' : ''}`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{u.name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">{u.email}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${u.role === 'superadmin'
                       ? 'bg-purple-100 text-purple-800'
                       : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {new Date(u.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end gap-3">
-                    <button
-                      onClick={() => handleViewActivityLogs(u)}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="View activity logs"
-                    >
-                      <ClockIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(u.id, u.name)}
-                      disabled={u.id === user.id}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={u.id === user.id ? "You cannot delete yourself" : "Delete user"}
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      }`}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${u.is_active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                      }`}>
+                      {u.is_active ? 'Active' : 'Disabled'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-3">
+                      {/* Toggle Switch */}
+                      <button
+                        onClick={() => handleToggleStatus(u.id, u.name, u.is_active)}
+                        disabled={u.id === user.id}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${u.is_active
+                          ? 'bg-green-500 focus:ring-green-500'
+                          : 'bg-gray-300 focus:ring-gray-400'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        title={
+                          u.id === user.id
+                            ? "You cannot disable yourself"
+                            : u.is_active
+                              ? "Click to disable user"
+                              : "Click to enable user"
+                        }
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${u.is_active ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                      </button>
+                      <button
+                        onClick={() => handleViewActivityLogs(u)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View activity logs"
+                      >
+                        <ClockIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u.id, u.name)}
+                        disabled={u.id === user.id}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={u.id === user.id ? "You cannot delete yourself" : "Delete user"}
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {users.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No users found</p>
-          </div>
-        )}
+          {users.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No users found</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Add User Modal */}

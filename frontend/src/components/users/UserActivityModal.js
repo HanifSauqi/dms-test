@@ -168,22 +168,22 @@ export default function UserActivityModal({ isOpen, onClose, user }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white p-4 sm:p-6 md:p-8 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-6">
                   <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
                     Activity Logs - {user?.name}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
-                    className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+                    className="p-2 md:p-1.5 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
                   >
-                    <XMarkIcon className="h-6 w-6" />
+                    <XMarkIcon className="h-6 w-6 md:h-5 md:w-5 text-gray-400 hover:text-gray-500" />
                   </button>
                 </div>
 
                 {/* Statistics Section */}
                 {stats && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-blue-50 rounded-lg p-4">
                       <div className="text-sm text-blue-600 font-medium">Total Activities</div>
                       <div className="text-2xl font-bold text-blue-900">{stats.total_activities || 0}</div>

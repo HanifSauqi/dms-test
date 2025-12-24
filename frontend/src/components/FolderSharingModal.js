@@ -203,7 +203,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative mx-auto p-6 w-full max-w-md bg-white rounded-lg shadow-xl">
+      <div className="relative mx-auto p-4 sm:p-6 w-full max-w-md bg-white rounded-lg shadow-xl m-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-2">
@@ -212,9 +212,9 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 md:p-1.5 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <XMarkIcon className="h-5 w-5 text-gray-500" />
+            <XMarkIcon className="h-6 w-6 md:h-5 md:w-5 text-gray-500" />
           </button>
         </div>
 
@@ -366,7 +366,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
               <p>No one else has access to this folder</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div className="space-y-2 max-h-40 sm:max-h-60 overflow-y-auto">
               {permissions.map((permission) => (
                 <div key={permission.user.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3 flex-1 min-w-0">

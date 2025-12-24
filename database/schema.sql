@@ -53,11 +53,13 @@ CREATE TABLE documents (
 );
 
 -- Labels Table
--- Stores document labels/tags for categorization
+-- Stores document labels/tags for categorization (per-user)
 CREATE TABLE labels (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    color VARCHAR(50) DEFAULT '#3B82F6'
+    name VARCHAR(255) NOT NULL,
+    color VARCHAR(50) DEFAULT '#3B82F6',
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT labels_name_user_unique UNIQUE (name, user_id)
 );
 
 -- Document Labels Junction Table
@@ -151,6 +153,9 @@ CREATE INDEX idx_documents_updated_at ON documents(updated_at DESC);
 -- Document Labels indexes
 CREATE INDEX idx_document_labels_label_id ON document_labels(label_id);
 
+-- Labels indexes
+CREATE INDEX idx_labels_user_id ON labels(user_id);
+
 -- Folder Permissions indexes
 CREATE INDEX idx_folder_permissions_user_id ON folder_permissions(user_id);
 
@@ -198,13 +203,8 @@ COMMENT ON COLUMN user_activities.metadata IS 'Additional JSON data about the ac
 -- DEFAULT DATA
 -- ============================================================================
 
--- Insert default labels for document categorization
-INSERT INTO labels (name, color) VALUES
-    ('Project', '#3B82F6'),
-    ('Important', '#EF4444'),
-    ('Draft', '#F59E0B'),
-    ('Completed', '#10B981'),
-    ('Review', '#8B5CF6');
+-- Note: No default labels are inserted.
+-- Each user creates their own labels (per-user labels system).
 
 -- ============================================================================
 -- COMPLETION MESSAGE

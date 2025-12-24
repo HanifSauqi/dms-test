@@ -116,7 +116,7 @@ export default function LabelForm({
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2.5 sm:px-3 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter label name"
@@ -140,7 +140,7 @@ export default function LabelForm({
                 type="color"
                 value={formData.color}
                 onChange={(e) => handleInputChange('color', e.target.value)}
-                className="h-8 w-20 border border-gray-300 rounded cursor-pointer"
+                className="h-10 sm:h-9 w-20 border border-gray-300 rounded cursor-pointer"
               />
             </div>
 
@@ -153,7 +153,7 @@ export default function LabelForm({
                     key={color}
                     type="button"
                     onClick={() => handleInputChange('color', color)}
-                    className={`w-6 h-6 rounded-full border-2 ${
+                    className={`w-10 h-10 md:w-8 md:h-8 rounded-full border-2 ${
                       formData.color === color ? 'border-gray-900' : 'border-gray-300'
                     }`}
                     style={{ backgroundColor: color }}

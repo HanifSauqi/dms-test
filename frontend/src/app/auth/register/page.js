@@ -86,16 +86,16 @@ export default function RegisterPage() {
         <div className="max-w-md w-full space-y-8">
           {/* Logo */}
           <div className="text-center">
-            <div className="mx-auto h-16 w-16 flex items-center justify-center mb-4">
+            <div className="mx-auto h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 flex items-center justify-center mb-4">
               <Image
                 src="/Mask group.png"
                 alt="PDU Logo"
                 width={64}
                 height={64}
-                className="object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
             <p className="text-gray-600 text-sm mb-8">Please enter your details to sign up</p>
           </div>
 

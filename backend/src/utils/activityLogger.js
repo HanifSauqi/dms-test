@@ -21,7 +21,6 @@ const logActivity = async (documentId, userId, activityType) => {
     );
 
     if (recentActivity.rows.length > 0) {
-      console.log(`Skipping duplicate ${activityType} activity for doc ${documentId}`);
       return;
     }
 
@@ -29,8 +28,6 @@ const logActivity = async (documentId, userId, activityType) => {
       'INSERT INTO document_activities (document_id, user_id, activity_type) VALUES ($1, $2, $3)',
       [documentId, userId, activityType]
     );
-
-    console.log(`Logged ${activityType} activity for doc ${documentId} by user ${userId}`);
   } catch (error) {
     console.error('Error logging activity:', error);
   }

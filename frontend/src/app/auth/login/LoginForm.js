@@ -86,8 +86,8 @@ export default function LoginForm() {
         }}
       >
         <div className="text-white text-center px-12 z-10">
-          <h1 className="text-5xl font-bold mb-4">Parama Data Unit</h1>
-          <p className="text-xl opacity-90">Document Management System</p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Parama Data Unit</h1>
+          <p className="text-lg sm:text-xl opacity-90">Document Management System</p>
           <div className="mt-8 text-sm opacity-75">
             Secure, efficient, and intelligent document management
           </div>
@@ -102,16 +102,18 @@ export default function LoginForm() {
             {/* PDU Logo / Header */}
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
-                <Image
-                  src="/Mask group.png"
-                  alt="PDU Logo"
-                  width={60}
-                  height={60}
-                  priority
-                  className="object-contain"
-                />
+                <div className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16">
+                  <Image
+                    src="/Mask group.png"
+                    alt="PDU Logo"
+                    width={64}
+                    height={64}
+                    priority
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 Welcome!
               </h2>
               <p className="text-sm text-gray-600">

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   ChartBarIcon,
   ArrowDownTrayIcon,
@@ -22,9 +21,10 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import { reportApi } from '@/lib/api';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function ReportDetailPage() {
-  const { api } = useAuth();
   const router = useRouter();
   const params = useParams();
   const reportId = params.id;
@@ -33,240 +33,71 @@ export default function ReportDetailPage() {
   const [chartData, setChartData] = useState([]);
   const [chartType, setChartType] = useState('line');
   const [loading, setLoading] = useState(true);
-  const [documents, setDocuments] = useState([]);
+  const [total, setTotal] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Default report configuration
-  const defaultReports = {};
-
-  const documentMatchesKeywords = (doc, keywords) => {
-    // Combine all searchable fields
-    const searchText = `
-      ${doc.title || ''}
-      ${doc.fileName || ''}
-      ${doc.description || ''}
-      ${doc.extractedText || ''}
-      ${doc.content || ''}
-    `.toLowerCase();
-
-    // Document matches ONLY if it contains ALL keywords (AND logic)
-    return keywords.every(keyword => searchText.includes(keyword.toLowerCase()));
-  };
-
   const loadReport = useCallback(async () => {
-    // Skip loading if we're in the process of deleting
-    if (isDeleting) {
-      return;
-    }
+    if (isDeleting) return;
 
     try {
       setLoading(true);
 
-      // Load report configuration
-      let reportConfig = null;
-      const savedReports = localStorage.getItem('customReports');
-      if (savedReports) {
-        const reports = JSON.parse(savedReports);
-        reportConfig = reports.find(r => r.id === reportId);
-      }
+      // Load report with statistics from API
+      const response = await reportApi.getStats(reportId);
+      const data = response.data || response;
 
-      if (!reportConfig) {
+      if (!data.report) {
         router.replace('/dashboard/report');
         return;
       }
 
-      setReport(reportConfig);
+      setReport(data.report);
+      setTotal(data.total || 0);
 
-      // Strategy: Search for each keyword separately, then find intersection
-      let documentSets = [];
+      // Transform stats for chart
+      const stats = data.stats || [];
+      const transformedData = stats.map(item => ({
+        period: item.period_label,
+        count: parseInt(item.count) || 0
+      }));
 
-      // Search for each keyword individually using the search API
-      for (const keyword of reportConfig.keywords) {
-        try {
-          const searchResponse = await api.get(`/documents/search?q=${encodeURIComponent(keyword)}`);
-          if (searchResponse.data.success) {
-            const docs = Array.isArray(searchResponse.data.data)
-              ? searchResponse.data.data
-              : (searchResponse.data.data?.documents || []);
-            documentSets.push(new Set(docs.map(d => d.id)));
-            console.log(`Keyword "${keyword}" found ${docs.length} documents`);
-          } else {
-            documentSets.push(new Set());
-          }
-        } catch (err) {
-          console.error(`Error searching for keyword "${keyword}":`, err);
-          documentSets.push(new Set());
-        }
-      }
-
-      // Find intersection: documents that appear in ALL searches (AND logic)
-      let commonDocIds = null;
-      if (documentSets.length > 0) {
-        commonDocIds = documentSets[0];
-        for (let i = 1; i < documentSets.length; i++) {
-          commonDocIds = new Set([...commonDocIds].filter(id => documentSets[i].has(id)));
-        }
-      } else {
-        commonDocIds = new Set();
-      }
-
-      console.log(`%c📊 Intersection Result`, 'color: green; font-weight: bold');
-      console.log(`Documents matching ALL keywords: ${commonDocIds.size}`);
-
-      // Now fetch the full details of these common documents
-      let allDocs = [];
-      if (commonDocIds.size > 0) {
-        // Search with first keyword to get full document details
-        const searchResponse = await api.get(`/documents/search?q=${encodeURIComponent(reportConfig.keywords[0])}`);
-        if (searchResponse.data.success) {
-          const docs = Array.isArray(searchResponse.data.data)
-            ? searchResponse.data.data
-            : (searchResponse.data.data?.documents || []);
-          // Filter to only include documents in our intersection
-          allDocs = docs.filter(doc => commonDocIds.has(doc.id));
-
-          console.log(`%c✅ Matched Documents:`, 'color: green; font-weight: bold');
-          allDocs.forEach(doc => {
-            console.log(`  - ${doc.title} (ID: ${doc.id})`);
-            console.log(`    File: ${doc.fileName}`);
-          });
-        }
-      }
-
-      setDocuments(allDocs);
-      console.log(`%c🎯 Final Result: ${allDocs.length} documents`, 'color: blue; font-weight: bold', reportConfig.keywords);
+      setChartData(transformedData);
     } catch (error) {
       console.error('Error loading report:', error);
-      alert('Failed to load report');
+      if (error.message?.includes('not found') || error.status === 404) {
+        router.replace('/dashboard/report');
+      } else {
+        showError('Failed to load report');
+      }
     } finally {
       setLoading(false);
     }
-  }, [api, isDeleting, reportId, router]);
-
-  const generateChartData = useCallback(() => {
-    // Documents are already filtered by keywords in loadReport
-    const filteredDocs = documents;
-
-    let data = [];
-    const now = new Date();
-
-    switch (report.timeRange) {
-      case 'daily':
-        // Last 7 days
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date(now);
-          date.setDate(date.getDate() - i);
-          const dayStart = new Date(date.setHours(0, 0, 0, 0));
-          const dayEnd = new Date(date.setHours(23, 59, 59, 999));
-
-          const count = filteredDocs.filter(doc => {
-            const docDate = new Date(doc.createdAt);
-            return docDate >= dayStart && docDate <= dayEnd;
-          }).length;
-
-          data.push({
-            name: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()],
-            count: count,
-            date: dayStart.toLocaleDateString()
-          });
-        }
-        break;
-
-      case 'weekly':
-        // Last 7 weeks
-        for (let i = 6; i >= 0; i--) {
-          const weekStart = new Date(now);
-          weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay());
-          weekStart.setHours(0, 0, 0, 0);
-
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekEnd.getDate() + 6);
-          weekEnd.setHours(23, 59, 59, 999);
-
-          const count = filteredDocs.filter(doc => {
-            const docDate = new Date(doc.createdAt);
-            return docDate >= weekStart && docDate <= weekEnd;
-          }).length;
-
-          data.push({
-            name: `Week ${7 - i}`,
-            count: count,
-            date: `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`
-          });
-        }
-        break;
-
-      case 'monthly':
-        // Last 12 months
-        for (let i = 11; i >= 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-
-          const count = filteredDocs.filter(doc => {
-            const docDate = new Date(doc.createdAt);
-            return docDate >= monthStart && docDate <= monthEnd;
-          }).length;
-
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          data.push({
-            name: monthNames[date.getMonth()],
-            count: count,
-            date: `${monthNames[date.getMonth()]} ${date.getFullYear()}`
-          });
-        }
-        break;
-
-      case 'yearly':
-        // Group by year
-        const yearCounts = {};
-        filteredDocs.forEach(doc => {
-          const year = new Date(doc.createdAt).getFullYear();
-          yearCounts[year] = (yearCounts[year] || 0) + 1;
-        });
-
-        data = Object.keys(yearCounts)
-          .sort()
-          .map(year => ({
-            name: year,
-            count: yearCounts[year],
-            date: year
-          }));
-        break;
-    }
-
-    setChartData(data);
-  }, [documents, report]);
+  }, [reportId, router, isDeleting]);
 
   useEffect(() => {
     loadReport();
   }, [loadReport]);
 
-  useEffect(() => {
-    const handleFocus = () => {
-      loadReport();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [loadReport]);
-
-  useEffect(() => {
-    if (report && documents.length > 0) {
-      generateChartData();
+  const getTimeRangeLabel = (range) => {
+    switch (range) {
+      case 'daily': return 'Daily (Last 7 days)';
+      case 'weekly': return 'Weekly (Last 7 weeks)';
+      case 'monthly': return 'Monthly (Last 12 months)';
+      case 'yearly': return 'Yearly (All years)';
+      default: return range;
     }
-  }, [report, documents, generateChartData]);
+  };
 
   const handleExportCSV = () => {
-    if (chartData.length === 0) {
-      alert('No data to export');
+    if (!chartData.length) {
+      showError('No data to export');
       return;
     }
 
-    const csvContent = [
-      ['Period', 'Count', 'Date'],
-      ...chartData.map(item => [item.name, item.count, item.date])
-    ]
+    const headers = ['Period', 'Document Count'];
+    const rows = chartData.map(item => [item.period, item.count]);
+
+    const csvContent = [headers, ...rows]
       .map(row => row.join(','))
       .join('\n');
 
@@ -281,30 +112,19 @@ export default function ReportDetailPage() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleDeleteReport = () => {
+  const handleDeleteReport = async () => {
     if (!confirm(`Are you sure you want to delete "${report.name}"?\n\nThis action cannot be undone.`)) {
       return;
     }
 
     try {
-      // Set deleting flag to prevent loadReport from running
       setIsDeleting(true);
-
-      const savedReports = localStorage.getItem('customReports');
-      if (savedReports) {
-        const parsed = JSON.parse(savedReports);
-        const filtered = parsed.filter(r => r.id !== reportId);
-        localStorage.setItem('customReports', JSON.stringify(filtered));
-
-        // Redirect to report list immediately without alert
-        router.replace('/dashboard/report');
-      } else {
-        alert('No reports found to delete');
-        setIsDeleting(false);
-      }
+      await reportApi.delete(reportId);
+      showSuccess(`Report "${report.name}" deleted successfully`);
+      router.replace('/dashboard/report');
     } catch (error) {
       console.error('Error deleting report:', error);
-      alert('Failed to delete report. Please try again.');
+      showError('Failed to delete report');
       setIsDeleting(false);
     }
   };
@@ -323,10 +143,6 @@ export default function ReportDetailPage() {
   if (!report) {
     return null;
   }
-
-  const totalCount = chartData.reduce((sum, item) => sum + item.count, 0);
-  const avgCount = chartData.length > 0 ? (totalCount / chartData.length).toFixed(1) : 0;
-  const maxCount = chartData.length > 0 ? Math.max(...chartData.map(item => item.count)) : 0;
 
   return (
     <div className="space-y-6 pt-6">
@@ -350,170 +166,142 @@ export default function ReportDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{report.name}</h1>
+      <div className="flex items-start justify-between">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+              <ChartBarIcon className="h-6 w-6 text-orange-600" />
+            </div>
+          </div>
+          <div className="ml-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{report.name}</h1>
             {report.description && (
               <p className="text-sm text-gray-600 mt-1">{report.description}</p>
             )}
-            <div className="mt-3 flex flex-wrap gap-2 items-center">
-              <div className="text-xs text-gray-500 flex flex-wrap items-center gap-1">
-                <span className="font-medium">Keywords:</span>
-                {report.keywords.map((keyword, index) => (
-                  <span key={index} className="flex items-center">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                      {keyword}
-                    </span>
-                    {index < report.keywords.length - 1 && (
-                      <span className="mx-1 font-semibold text-gray-700">AND</span>
-                    )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push(`/dashboard/report/${reportId}/edit`)}
+            className="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+          >
+            <PencilIcon className="h-4 w-4 mr-1" />
+            Edit
+          </button>
+          <button
+            onClick={handleDeleteReport}
+            className="inline-flex items-center px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+          >
+            <TrashIcon className="h-4 w-4 mr-1" />
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* Report Info */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Keywords */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Keywords</h3>
+            <div className="flex flex-wrap gap-1 items-center">
+              {(report.keywords || []).map((keyword, index) => (
+                <span key={index} className="flex items-center gap-1">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                    {keyword}
                   </span>
-                ))}
-              </div>
-              <div className="text-xs text-gray-400 italic">
-                (Documents must contain all keywords)
-              </div>
+                  {index < report.keywords.length - 1 && (
+                    <span className="text-xs font-semibold text-gray-600">AND</span>
+                  )}
+                </span>
+              ))}
             </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/dashboard/report/${reportId}/edit`)}
-              className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
-            >
-              <PencilIcon className="h-4 w-4 mr-2" />
-              Edit
-            </button>
-            <button
-              onClick={handleDeleteReport}
-              className="inline-flex items-center px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-            >
-              <TrashIcon className="h-4 w-4 mr-2" />
-              Delete
-            </button>
-            <select
-              value={chartType}
-              onChange={(e) => setChartType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="line">Line Chart</option>
-              <option value="bar">Bar Chart</option>
-            </select>
-            <button
-              onClick={handleExportCSV}
-              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-            >
-              <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-              Export CSV
-            </button>
+
+          {/* Time Range */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Time Range</h3>
+            <div className="flex items-center">
+              <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
+              <span className="text-sm text-gray-900">
+                {getTimeRangeLabel(report.time_range || report.timeRange)}
+              </span>
+            </div>
+          </div>
+
+          {/* Total Documents */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Documents</h3>
+            <p className="text-2xl font-bold text-orange-600">{total}</p>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <ChartBarIcon className="h-8 w-8 text-blue-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Documents</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
-            </div>
-          </div>
+      {/* Chart Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Chart Type:</span>
+          <select
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="line">Line Chart</option>
+            <option value="bar">Bar Chart</option>
+          </select>
         </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CalendarIcon className="h-8 w-8 text-green-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Average per Period</p>
-              <p className="text-2xl font-bold text-gray-900">{avgCount}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <ChartBarIcon className="h-8 w-8 text-orange-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Peak Count</p>
-              <p className="text-2xl font-bold text-gray-900">{maxCount}</p>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={handleExportCSV}
+          disabled={chartData.length === 0}
+          className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+          Export CSV
+        </button>
       </div>
 
       {/* Chart */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Analytical Details</h2>
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            {chartType === 'line' ? (
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-                          <p className="text-sm font-medium">{payload[0].payload.date}</p>
-                          <p className="text-sm text-gray-600">
-                            Documents: <span className="font-semibold text-blue-600">{payload[0].value}</span>
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={{ fill: '#3b82f6', r: 4 }}
-                  activeDot={{ r: 6 }}
-                  name="Documents"
-                />
-              </LineChart>
-            ) : (
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-                          <p className="text-sm font-medium">{payload[0].payload.date}</p>
-                          <p className="text-sm text-gray-600">
-                            Documents: <span className="font-semibold text-blue-600">{payload[0].value}</span>
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="count" fill="#3b82f6" name="Documents" />
-              </BarChart>
-            )}
-          </ResponsiveContainer>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'line' ? (
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="period" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    name="Documents"
+                    stroke="#F97316"
+                    strokeWidth={2}
+                    dot={{ fill: '#F97316' }}
+                  />
+                </LineChart>
+              ) : (
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="period" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" name="Documents" fill="#F97316" />
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          </div>
         ) : (
-          <div className="text-center py-12">
-            <ChartBarIcon className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-2 text-sm text-gray-500">No data available for this report</p>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-center">
+              <ChartBarIcon className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">No data available for this report</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Upload documents containing the keywords to see statistics
+              </p>
+            </div>
           </div>
         )}
       </div>

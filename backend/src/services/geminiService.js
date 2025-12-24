@@ -28,10 +28,7 @@ class GeminiService {
       // Initialize Google GenAI client
       this.ai = new GoogleGenAI({ apiKey: this.apiKey });
       this.enabled = true;
-      console.log('✅ Gemini AI Service initialized successfully');
-      console.log(`   Default search model: ${this.config.defaultModels.search}`);
     } catch (error) {
-      console.error('❌ Failed to initialize Gemini AI:', error.message);
       this.enabled = false;
     }
   }
@@ -131,7 +128,6 @@ Return JSON only, no markdown, no explanation.`;
       }
 
       const metadata = JSON.parse(jsonMatch[0]);
-      console.log(`✅ Extracted metadata for ${fileName}: ${metadata.document_type}`);
 
       return metadata;
 
@@ -222,7 +218,6 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log(`✅ Parsed query: ${query} → ${parsed.document_type || 'general'}`);
 
       return {
         ...parsed,
@@ -326,7 +321,6 @@ Return ONLY valid JSON, no markdown.`;
       }
 
       const ragResponse = JSON.parse(jsonMatch[0]);
-      console.log(`✅ RAG search completed: ${ragResponse.total_found} matches found`);
 
       return ragResponse;
 

@@ -9,16 +9,8 @@ const pool = require('./database');
  */
 const classifyDocument = async (extractedContent, userId, manualFolderId = null) => {
   try {
-    console.log('🤖 Auto-classification started:', {
-      userId,
-      manualFolderId,
-      hasContent: !!extractedContent,
-      contentLength: extractedContent?.length || 0
-    });
-
     // If folder manually specified, respect user's choice
     if (manualFolderId) {
-      console.log('📁 Manual folder selected, skipping auto-classification');
       return {
         targetFolderId: manualFolderId,
         autoClassified: false,
@@ -36,10 +28,7 @@ const classifyDocument = async (extractedContent, userId, manualFolderId = null)
       ORDER BY ucr.priority DESC, ucr.created_at ASC
     `, [userId]);
 
-    console.log(`📋 Found ${rulesResult.rows.length} active classification rules`);
-
     if (rulesResult.rows.length === 0) {
-      console.log('⚠️ No active classification rules found');
       return {
         targetFolderId: null,
         autoClassified: false,
@@ -52,7 +41,6 @@ const classifyDocument = async (extractedContent, userId, manualFolderId = null)
     const contentLower = extractedContent ? extractedContent.toLowerCase() : '';
 
     if (!contentLower) {
-      console.log('⚠️ No extracted content to match against');
       return {
         targetFolderId: null,
         autoClassified: false,
@@ -61,15 +49,10 @@ const classifyDocument = async (extractedContent, userId, manualFolderId = null)
       };
     }
 
-    console.log('🔍 Checking keywords against content...');
-    console.log('Content preview:', contentLower.substring(0, 200));
-
     for (const rule of rulesResult.rows) {
       const keywordLower = rule.keyword.toLowerCase();
-      console.log(`  - Checking keyword: "${rule.keyword}" in folder "${rule.folder_name}"`);
 
       if (contentLower.includes(keywordLower)) {
-        console.log(`✅ MATCH FOUND! Keyword "${rule.keyword}" matched!`);
         return {
           targetFolderId: rule.target_folder_id,
           autoClassified: true,
@@ -80,8 +63,6 @@ const classifyDocument = async (extractedContent, userId, manualFolderId = null)
       }
     }
 
-    console.log('❌ No keyword matches found');
-
     // No matches found
     return {
       targetFolderId: null,
@@ -91,7 +72,6 @@ const classifyDocument = async (extractedContent, userId, manualFolderId = null)
     };
 
   } catch (error) {
-    console.error('Auto-classification error:', error);
     // Return no classification on error to prevent upload failure
     return {
       targetFolderId: null,

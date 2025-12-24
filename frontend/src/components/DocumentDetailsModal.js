@@ -76,7 +76,7 @@ export default function DocumentDetailsModal({ document, isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative mx-auto p-6 w-full max-w-2xl bg-white rounded-lg shadow-xl">
+      <div className="relative mx-auto p-4 sm:p-6 md:p-8 w-full max-w-2xl bg-white rounded-lg shadow-xl m-4">
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-start space-x-3">
@@ -88,9 +88,9 @@ export default function DocumentDetailsModal({ document, isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 md:p-1.5 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <XMarkIcon className="h-5 w-5 text-gray-500" />
+            <XMarkIcon className="h-6 w-6 md:h-5 md:w-5 text-gray-500" />
           </button>
         </div>
 
@@ -214,7 +214,7 @@ export default function DocumentDetailsModal({ document, isOpen, onClose }) {
                 <h4 className="text-sm font-medium text-gray-900 border-b border-gray-200 pb-2">
                   Content Preview
                 </h4>
-                <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
+                <div className="bg-gray-50 rounded-lg p-4 max-h-40 sm:max-h-60 overflow-y-auto">
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {documentDetails.extractedContent.substring(0, 500)}
                     {documentDetails.extractedContent.length > 500 && '...'}

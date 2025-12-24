@@ -40,6 +40,11 @@ export const usersApi = {
   permanentDeleteUser: (userId) => {
     return api.delete(`/users/${userId}/permanent`);
   },
+
+  // Toggle user status (enable/disable) (superadmin only)
+  toggleUserStatus: (userId, isActive) => {
+    return api.patch(`/users/${userId}/status`, { isActive });
+  },
 };
 
 export default usersApi;

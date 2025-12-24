@@ -135,15 +135,15 @@ export default function LabelsPage() {
       </nav>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Labels</h1>
-            <p className="text-gray-600">Manage labels to organize your documents</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Labels</h1>
+            <p className="text-sm text-gray-600">Manage labels to organize your documents</p>
           </div>
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="flex items-center space-x-2 px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <PlusIcon className="w-5 h-5" />
             <span>Create Label</span>

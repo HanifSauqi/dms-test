@@ -14,7 +14,9 @@ import {
   InformationCircleIcon,
   Squares2X2Icon,
   ListBulletIcon,
-  DocumentDuplicateIcon
+  DocumentDuplicateIcon,
+  FunnelIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import DropdownMenu from '@/components/DropdownMenu';
 import { showSuccess, showError } from '@/utils/toast';
@@ -49,6 +51,8 @@ export default function DocumentList({
   });
   const [actionLoading, setActionLoading] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'detail'
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('myFolder'); // 'myFolder', 'file', 'sharedFolder'
 
   // Load view mode preference from localStorage
   useEffect(() => {
@@ -57,6 +61,18 @@ export default function DocumentList({
       setViewMode(savedViewMode);
     }
   }, []);
+
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showFilterDropdown && !event.target.closest('.filter-dropdown-container')) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilterDropdown]);
 
   // Save view mode preference to localStorage
   const handleViewModeChange = (mode) => {
@@ -219,175 +235,175 @@ export default function DocumentList({
 
         {/* Grid View */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
             {folderList.map((folder) => {
               // Get actual permission level for each folder (for shared folders)
               const actualAccessLevel = folder.accessLevel || folder.access_level || folder.permissionLevel || folderAccessLevel;
               return (
-              <div
-                key={folder.id}
-                className="group flex flex-col items-center cursor-pointer"
-              >
                 <div
-                  className="relative flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
-                  onClick={() => onFolderClick(folder)}
+                  key={folder.id}
+                  className="group flex flex-col items-center cursor-pointer"
                 >
-                  <FolderIcon className="w-20 h-20 text-orange-600 mb-1" />
-                  <p className="text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2">
-                    {folder.name}
-                  </p>
                   <div
-                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()}
+                    className="relative flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                    onClick={() => onFolderClick(folder)}
                   >
-                    <DropdownMenu
-                      trigger={
-                        <button className="p-1 rounded-full hover:bg-gray-200 bg-white shadow-sm transition-colors">
-                          <EllipsisVerticalIcon className="w-4 h-4 text-gray-600" />
-                        </button>
-                      }
-                      options={[
-                        {
-                          label: 'Rename',
-                          icon: PencilIcon,
-                          onClick: () => handleFolderAction('edit', folder),
-                          disabled: actionLoading === `edit-folder-${folder.id}`
-                        },
-                        ...(actualAccessLevel === 'owner' ? [{
-                          label: 'Share',
-                          icon: ShareIcon,
-                          onClick: () => handleFolderAction('share', folder),
-                          disabled: actionLoading === `share-folder-${folder.id}`
-                        }] : []),
-                        ...(actualAccessLevel === 'editor' || actualAccessLevel === 'owner' ? [{
-                          label: 'Copy to My Folders',
-                          icon: DocumentDuplicateIcon,
-                          onClick: () => handleFolderAction('copy', folder),
-                          disabled: actionLoading === `copy-folder-${folder.id}`
-                        }] : []),
-                        ...(actualAccessLevel === 'owner' ? [{
-                          label: 'Delete',
-                          icon: TrashIcon,
-                          onClick: () => handleFolderAction('delete', folder),
-                          disabled: actionLoading === `delete-folder-${folder.id}`,
-                          className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                        }] : [])
-                      ]}
-                      onOptionClick={(option) => {
-                        console.log('📁 FolderList: onOptionClick received:', option.label);
-                        if (option.onClick) {
-                          console.log('📁 FolderList: Calling option.onClick()');
-                          option.onClick();
-                        } else {
-                          console.error('❌ FolderList: option.onClick is not defined!');
+                    <FolderIcon className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 text-orange-600 mb-1" />
+                    <p className="text-xs sm:text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2">
+                      {folder.name}
+                    </p>
+                    <div
+                      className="absolute top-1 right-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu
+                        trigger={
+                          <button className="p-2 md:p-1.5 rounded-full hover:bg-gray-200 bg-white shadow-sm transition-colors">
+                            <EllipsisVerticalIcon className="w-5 h-5 md:w-4 md:h-4 text-gray-600" />
+                          </button>
                         }
-                      }}
-                    />
+                        options={[
+                          {
+                            label: 'Rename',
+                            icon: PencilIcon,
+                            onClick: () => handleFolderAction('edit', folder),
+                            disabled: actionLoading === `edit-folder-${folder.id}`
+                          },
+                          ...(actualAccessLevel === 'owner' ? [{
+                            label: 'Share',
+                            icon: ShareIcon,
+                            onClick: () => handleFolderAction('share', folder),
+                            disabled: actionLoading === `share-folder-${folder.id}`
+                          }] : []),
+                          ...(actualAccessLevel === 'editor' || actualAccessLevel === 'owner' ? [{
+                            label: 'Copy to My Folders',
+                            icon: DocumentDuplicateIcon,
+                            onClick: () => handleFolderAction('copy', folder),
+                            disabled: actionLoading === `copy-folder-${folder.id}`
+                          }] : []),
+                          ...(actualAccessLevel === 'owner' ? [{
+                            label: 'Delete',
+                            icon: TrashIcon,
+                            onClick: () => handleFolderAction('delete', folder),
+                            disabled: actionLoading === `delete-folder-${folder.id}`,
+                            className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                          }] : [])
+                        ]}
+                        onOptionClick={(option) => {
+                          console.log('📁 FolderList: onOptionClick received:', option.label);
+                          if (option.onClick) {
+                            console.log('📁 FolderList: Calling option.onClick()');
+                            option.onClick();
+                          } else {
+                            console.error('❌ FolderList: option.onClick is not defined!');
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
+              );
             })}
           </div>
         )}
 
         {/* Detail View */}
         {viewMode === 'detail' && (
-          <div className="bg-white border border-gray-200 rounded-lg">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Items
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
-                {folderList.map((folder) => {
-                  // Get actual permission level for each folder (for shared folders)
-                  const actualAccessLevel = folder.accessLevel || folder.access_level || folder.permissionLevel || folderAccessLevel;
-                  return (
-                  <tr
-                    key={folder.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => onFolderClick(folder)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FolderIcon className="w-6 h-6 text-orange-600 mr-3" />
-                        <span className="text-sm font-medium text-gray-900">{folder.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600">{folder.documentCount || 0} items</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600">
-                        {folder.createdAt ? formatDate(folder.createdAt) : '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative inline-block">
-                        <DropdownMenu
-                          trigger={
-                            <button className="p-1 rounded-full hover:bg-gray-200 transition-colors">
-                              <EllipsisVerticalIcon className="w-5 h-5 text-gray-500" />
-                            </button>
-                          }
-                          options={[
-                            {
-                              label: 'Rename',
-                              icon: PencilIcon,
-                              onClick: () => handleFolderAction('edit', folder),
-                              disabled: actionLoading === `edit-folder-${folder.id}`
-                            },
-                            ...(actualAccessLevel === 'owner' ? [{
-                              label: 'Share',
-                              icon: ShareIcon,
-                              onClick: () => handleFolderAction('share', folder),
-                              disabled: actionLoading === `share-folder-${folder.id}`
-                            }] : []),
-                            ...(actualAccessLevel === 'editor' || actualAccessLevel === 'owner' ? [{
-                              label: 'Copy to My Folders',
-                              icon: DocumentDuplicateIcon,
-                              onClick: () => handleFolderAction('copy', folder),
-                              disabled: actionLoading === `copy-folder-${folder.id}`
-                            }] : []),
-                            ...(actualAccessLevel === 'owner' ? [{
-                              label: 'Delete',
-                              icon: TrashIcon,
-                              onClick: () => handleFolderAction('delete', folder),
-                              disabled: actionLoading === `delete-folder-${folder.id}`,
-                              className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                            }] : [])
-                          ]}
-                          onOptionClick={(option) => {
-                            console.log('📁 FolderList: onOptionClick received:', option.label);
-                            if (option.onClick) {
-                              console.log('📁 FolderList: Calling option.onClick()');
-                              option.onClick();
-                            } else {
-                              console.error('❌ FolderList: option.onClick is not defined!');
-                            }
-                          }}
-                        />
-                      </div>
-                    </td>
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Items
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
+                      Actions
+                    </th>
                   </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
+                  {folderList.map((folder) => {
+                    // Get actual permission level for each folder (for shared folders)
+                    const actualAccessLevel = folder.accessLevel || folder.access_level || folder.permissionLevel || folderAccessLevel;
+                    return (
+                      <tr
+                        key={folder.id}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => onFolderClick(folder)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <FolderIcon className="w-6 h-6 text-orange-600 mr-3" />
+                            <span className="text-sm font-medium text-gray-900">{folder.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600">{folder.documentCount || 0} items</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600">
+                            {folder.createdAt ? formatDate(folder.createdAt) : '-'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative inline-block">
+                            <DropdownMenu
+                              trigger={
+                                <button className="p-2 md:p-1.5 rounded-full hover:bg-gray-200 transition-colors">
+                                  <EllipsisVerticalIcon className="w-5 h-5 text-gray-500" />
+                                </button>
+                              }
+                              options={[
+                                {
+                                  label: 'Rename',
+                                  icon: PencilIcon,
+                                  onClick: () => handleFolderAction('edit', folder),
+                                  disabled: actionLoading === `edit-folder-${folder.id}`
+                                },
+                                ...(actualAccessLevel === 'owner' ? [{
+                                  label: 'Share',
+                                  icon: ShareIcon,
+                                  onClick: () => handleFolderAction('share', folder),
+                                  disabled: actionLoading === `share-folder-${folder.id}`
+                                }] : []),
+                                ...(actualAccessLevel === 'editor' || actualAccessLevel === 'owner' ? [{
+                                  label: 'Copy to My Folders',
+                                  icon: DocumentDuplicateIcon,
+                                  onClick: () => handleFolderAction('copy', folder),
+                                  disabled: actionLoading === `copy-folder-${folder.id}`
+                                }] : []),
+                                ...(actualAccessLevel === 'owner' ? [{
+                                  label: 'Delete',
+                                  icon: TrashIcon,
+                                  onClick: () => handleFolderAction('delete', folder),
+                                  disabled: actionLoading === `delete-folder-${folder.id}`,
+                                  className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                }] : [])
+                              ]}
+                              onOptionClick={(option) => {
+                                console.log('📁 FolderList: onOptionClick received:', option.label);
+                                if (option.onClick) {
+                                  console.log('📁 FolderList: Calling option.onClick()');
+                                  option.onClick();
+                                } else {
+                                  console.error('❌ FolderList: option.onClick is not defined!');
+                                }
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -397,44 +413,103 @@ export default function DocumentList({
 
   return (
     <div>
-      {/* View Mode Toggle */}
+      {/* View Mode Toggle and Category Filter */}
       {(actualOwnedFolders.length > 0 || actualSharedFolders.length > 0 || documents.length > 0) && (
-        <div className="flex justify-end mb-4">
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+        <div className="flex justify-between items-center gap-3 mb-4">
+          {/* Category Filter - Only show in detail mode (Left side) */}
+          {viewMode === 'detail' ? (
+            <div className="inline-flex rounded-full border border-gray-200 bg-white p-1.5 gap-1">
+              <button
+                onClick={() => setCategoryFilter('myFolder')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${categoryFilter === 'myFolder'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+              >
+                {categoryFilter === 'myFolder' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                <span>My Folder</span>
+              </button>
+              <button
+                onClick={() => setCategoryFilter('file')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${categoryFilter === 'file'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+              >
+                {categoryFilter === 'file' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                <span>File</span>
+              </button>
+              <button
+                onClick={() => setCategoryFilter('sharedFolder')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${categoryFilter === 'sharedFolder'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+              >
+                {categoryFilter === 'sharedFolder' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                <span>Shared Folder</span>
+              </button>
+            </div>
+          ) : (
+            <div></div>
+          )}
+
+          {/* View Mode Toggle (Right side) */}
+          <div className="inline-flex rounded-full border border-gray-200 bg-white p-1.5 gap-1">
             <button
               onClick={() => handleViewModeChange('grid')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-orange-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              title="Grid View"
+              className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-full transition-all ${viewMode === 'grid'
+                ? 'bg-orange-600 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
             >
+              {viewMode === 'grid' && (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
               <Squares2X2Icon className="w-5 h-5" />
-              <span>Grid View</span>
             </button>
             <button
               onClick={() => handleViewModeChange('detail')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                viewMode === 'detail'
-                  ? 'bg-orange-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              title="Detail View"
+              className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-full transition-all ${viewMode === 'detail'
+                ? 'bg-orange-600 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
             >
+              {viewMode === 'detail' && (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
               <ListBulletIcon className="w-5 h-5" />
-              <span>Detail View</span>
             </button>
           </div>
         </div>
       )}
 
       {/* My Folders Section */}
-      {renderFolderSection(actualOwnedFolders, 'My Folder', 'owner')}
+      {(viewMode === 'grid' || categoryFilter === 'myFolder') && renderFolderSection(actualOwnedFolders, 'My Folder', 'owner')}
 
       {/* Shared Folders Section */}
-      {renderFolderSection(actualSharedFolders, 'Shared Folder', 'read')}
+      {(viewMode === 'grid' || categoryFilter === 'sharedFolder') && renderFolderSection(actualSharedFolders, 'Shared Folder', 'read')}
 
       {/* Files Section */}
-      {documents.length > 0 && (
+      {(viewMode === 'grid' || categoryFilter === 'file') && documents.length > 0 && (
         <div className="mb-8">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
             File ({documents.length})
@@ -442,28 +517,28 @@ export default function DocumentList({
 
           {/* Grid View */}
           {viewMode === 'grid' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
               {documents.map((document) => (
                 <div
                   key={document.id}
                   className="group flex flex-col items-center cursor-pointer"
                 >
                   <div
-                    className="relative flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                    className="relative flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg hover:bg-gray-50 transition-colors w-full"
                     onClick={() => handleDocumentAction('view', document)}
                   >
-                    <DocumentIcon className={`w-20 h-20 mb-1 ${getFileIconColor(document.fileName)}`} />
-                    <p className="text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2" title={document.title}>
+                    <DocumentIcon className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-1 ${getFileIconColor(document.fileName)}`} />
+                    <p className="text-xs sm:text-sm text-gray-900 text-center break-words w-full px-1 line-clamp-2" title={document.title}>
                       {document.title}
                     </p>
                     <div
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu
                         trigger={
-                          <button className="p-1 rounded-full hover:bg-gray-200 bg-white shadow-sm transition-colors">
-                            <EllipsisVerticalIcon className="w-4 h-4 text-gray-600" />
+                          <button className="p-2 md:p-1.5 rounded-full hover:bg-gray-200 bg-white shadow-sm transition-colors">
+                            <EllipsisVerticalIcon className="w-5 h-5 md:w-4 md:h-4 text-gray-600" />
                           </button>
                         }
                         options={[
@@ -524,126 +599,151 @@ export default function DocumentList({
 
           {/* Detail View */}
           {viewMode === 'detail' && (
-            <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Labels
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      File Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
-                  {documents.map((document) => (
-                    <tr
-                      key={document.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => handleDocumentAction('view', document)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <DocumentIcon className="w-6 h-6 text-orange-600 mr-3" />
-                          <span className="text-sm font-medium text-gray-900">{document.title}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {document.labels && document.labels.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {document.labels.map((label, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                              >
-                                {label}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">{document.fileName || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">{formatDate(document.createdAt)}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="relative inline-block">
-                          <DropdownMenu
-                            trigger={
-                              <button className="p-1 rounded-full hover:bg-gray-200 transition-colors">
-                                <EllipsisVerticalIcon className="w-5 h-5 text-gray-500" />
-                              </button>
-                            }
-                            options={[
-                              {
-                                label: 'View',
-                                icon: EyeIcon,
-                                onClick: () => handleDocumentAction('view', document),
-                                disabled: actionLoading === `view-${document.id}`
-                              },
-                              {
-                                label: 'Download',
-                                icon: ArrowDownTrayIcon,
-                                onClick: () => handleDocumentAction('download', document),
-                                disabled: actionLoading === `download-${document.id}`
-                              },
-                              {
-                                label: 'Edit Details',
-                                icon: PencilIcon,
-                                onClick: () => handleDocumentAction('edit', document),
-                                disabled: actionLoading === `edit-${document.id}`
-                              },
-                              {
-                                label: 'Manage Labels',
-                                icon: TagIcon,
-                                onClick: () => handleDocumentAction('labels', document),
-                                disabled: actionLoading === `labels-${document.id}`
-                              },
-                              {
-                                label: 'Document Info',
-                                icon: InformationCircleIcon,
-                                onClick: () => handleDocumentAction('details', document),
-                                disabled: actionLoading === `details-${document.id}`
-                              },
-                              ...(accessLevel === 'owner' ? [{
-                                label: 'Delete',
-                                icon: TrashIcon,
-                                onClick: () => handleDocumentAction('delete', document),
-                                disabled: actionLoading === `delete-${document.id}`,
-                                className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                              }] : [])
-                            ]}
-                            onOptionClick={(option) => {
-                              console.log('📄 DocumentList: onOptionClick received:', option.label);
-                              if (option.onClick) {
-                                console.log('📄 DocumentList: Calling option.onClick()');
-                                option.onClick();
-                              } else {
-                                console.error('❌ DocumentList: option.onClick is not defined!');
-                              }
-                            }}
-                          />
-                        </div>
-                      </td>
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Labels
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Emails
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Modified
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Shared With
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200 [&>tr:last-child>td:first-child]:rounded-bl-lg [&>tr:last-child>td:last-child]:rounded-br-lg">
+                    {documents.map((document) => (
+                      <tr
+                        key={document.id}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => handleDocumentAction('view', document)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <DocumentIcon className="w-6 h-6 text-orange-600 mr-3" />
+                            <span className="text-sm font-medium text-gray-900">{document.title}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {document.labels && document.labels.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {document.labels.slice(0, 2).map((label, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                                >
+                                  {label}
+                                </span>
+                              ))}
+                              {document.labels.length > 2 && (
+                                <span className="text-xs text-gray-500">+{document.labels.length - 2}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600">{document.ownerEmail || '-'}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600">{formatDate(document.updatedAt || document.createdAt)}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {document.sharedWith && document.sharedWith.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {document.sharedWith.slice(0, 2).map((user, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
+                                >
+                                  {user.name || user.email}
+                                </span>
+                              ))}
+                              {document.sharedWith.length > 2 && (
+                                <span className="text-xs text-gray-500">+{document.sharedWith.length - 2}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative inline-block">
+                            <DropdownMenu
+                              trigger={
+                                <button className="p-2 md:p-1.5 rounded-full hover:bg-gray-200 transition-colors">
+                                  <EllipsisVerticalIcon className="w-5 h-5 text-gray-500" />
+                                </button>
+                              }
+                              options={[
+                                {
+                                  label: 'View',
+                                  icon: EyeIcon,
+                                  onClick: () => handleDocumentAction('view', document),
+                                  disabled: actionLoading === `view-${document.id}`
+                                },
+                                {
+                                  label: 'Download',
+                                  icon: ArrowDownTrayIcon,
+                                  onClick: () => handleDocumentAction('download', document),
+                                  disabled: actionLoading === `download-${document.id}`
+                                },
+                                {
+                                  label: 'Edit Details',
+                                  icon: PencilIcon,
+                                  onClick: () => handleDocumentAction('edit', document),
+                                  disabled: actionLoading === `edit-${document.id}`
+                                },
+                                {
+                                  label: 'Manage Labels',
+                                  icon: TagIcon,
+                                  onClick: () => handleDocumentAction('labels', document),
+                                  disabled: actionLoading === `labels-${document.id}`
+                                },
+                                {
+                                  label: 'Document Info',
+                                  icon: InformationCircleIcon,
+                                  onClick: () => handleDocumentAction('details', document),
+                                  disabled: actionLoading === `details-${document.id}`
+                                },
+                                ...(accessLevel === 'owner' ? [{
+                                  label: 'Delete',
+                                  icon: TrashIcon,
+                                  onClick: () => handleDocumentAction('delete', document),
+                                  disabled: actionLoading === `delete-${document.id}`,
+                                  className: 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                }] : [])
+                              ]}
+                              onOptionClick={(option) => {
+                                console.log('📄 DocumentList: onOptionClick received:', option.label);
+                                if (option.onClick) {
+                                  console.log('📄 DocumentList: Calling option.onClick()');
+                                  option.onClick();
+                                } else {
+                                  console.error('❌ DocumentList: option.onClick is not defined!');
+                                }
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

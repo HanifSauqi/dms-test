@@ -13,7 +13,9 @@ import {
   CogIcon,
   HomeIcon,
   UsersIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { Montserrat } from 'next/font/google';
@@ -29,7 +31,9 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const sidebarRef = useRef(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -48,6 +52,33 @@ export default function DashboardLayout({ children }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutsideSidebar = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    if (isSidebarOpen) {
+      document.addEventListener('mousedown', handleClickOutsideSidebar);
+    }
+
+    return () => document.removeEventListener('mousedown', handleClickOutsideSidebar);
+  }, [isSidebarOpen]);
+
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isSidebarOpen]);
 
   if (loading) {
     return (
@@ -73,25 +104,54 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-white flex">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="bg-white flex flex-col border-r border-gray-200">
+      <div
+        ref={sidebarRef}
+        className={`
+          bg-white flex flex-col border-r border-gray-200
+          fixed lg:static
+          inset-y-0 left-0
+          w-64 lg:w-auto
+          z-50 lg:z-auto
+          transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
         {/* Logo Section */}
-        <div className="bg-white">
+        <div className="bg-white relative">
+          {/* Mobile Close Button - Positioned at top-right */}
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden absolute top-3 right-3 p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors z-10"
+            aria-label="Close navigation menu"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+
           <div className="flex items-center px-5 py-4">
             <div className="flex items-center space-x-3">
-              <div className="h-18 w-18 flex-shrink-0">
+              <div className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 flex-shrink-0">
                 <Image
                   src="/Mask group.png"
                   alt="PDU Logo"
                   width={80}
                   height={80}
-                  className="object-contain"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className={`space-y-0 ${montserrat.className}`}>
-                <h1 className="text-lg font-bold text-gray-900 tracking-wider -mb-1">Document</h1>
-                <h1 className="text-lg font-bold text-gray-900 tracking-wider -mb-1">Management</h1>
-                <h1 className="text-lg font-bold text-gray-900 tracking-wider">System</h1>
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-wider -mb-1">Document</h1>
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-wider -mb-1">Management</h1>
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-wider">System</h1>
               </div>
             </div>
           </div>
@@ -212,14 +272,22 @@ export default function DashboardLayout({ children }) {
 {/* Main Content Area */}
 <div className="flex-1 flex flex-col">
   {/* Top Header - User Profile with Dropdown */}
-  <div className="bg-transparent flex items-center px-8 py-7 justify-between border-gray-200">
-    
-    <h1 className="text-2xl pl-2 font-bold text-gray-900">
+  <div className="bg-transparent flex items-center gap-2 sm:gap-4 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-7 border-b border-gray-200">
+    {/* Mobile Menu Button */}
+    <button
+      onClick={() => setIsSidebarOpen(true)}
+      className="lg:hidden flex-shrink-0 p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
+      aria-label="Open navigation menu"
+    >
+      <Bars3Icon className="h-6 w-6" />
+    </button>
+
+    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex-1 truncate min-w-0">
       Dashboard
     </h1>
 
     {/* Profile Dropdown */}
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex-shrink-0" ref={dropdownRef}>
       <button
         onClick={() => setShowProfileDropdown(!showProfileDropdown)}
         className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
@@ -229,7 +297,7 @@ export default function DashboardLayout({ children }) {
 
       {/* Dropdown Menu */}
       {showProfileDropdown && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
+        <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
           <div className="px-4 py-3 border-b border-gray-200">
             <p className="text-sm font-semibold text-gray-900">{user.name}</p>
             <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
@@ -252,7 +320,7 @@ export default function DashboardLayout({ children }) {
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto bg-white">
-          <div className="px-10 pb-4">
+          <div className="px-4 sm:px-6 lg:px-10 py-4">
             <ErrorBoundary fallbackMessage="Something went wrong while loading this page. Please try refreshing.">
               {children}
             </ErrorBoundary>

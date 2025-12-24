@@ -45,7 +45,7 @@ export default function FolderEditModal({ folder, isOpen, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative mx-auto p-6 w-96 max-w-md bg-white rounded-lg shadow-xl">
+      <div className="relative mx-auto p-4 sm:p-6 w-full max-w-md bg-white rounded-lg shadow-xl m-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
@@ -54,9 +54,9 @@ export default function FolderEditModal({ folder, isOpen, onClose, onUpdate }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 md:p-1.5 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <XMarkIcon className="h-5 w-5 text-gray-500" />
+            <XMarkIcon className="h-6 w-6 md:h-5 md:w-5 text-gray-500" />
           </button>
         </div>
 
@@ -71,7 +71,7 @@ export default function FolderEditModal({ folder, isOpen, onClose, onUpdate }) {
               type="text"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               autoFocus
               required
             />

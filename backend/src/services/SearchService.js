@@ -11,19 +11,12 @@ class SearchService extends BaseService {
   async ragSearch(query, userId, options = {}) {
     const { limit = 50 } = options;
 
-    console.log(`🔍 Efficient RAG search for user ${userId}: "${query}"`);
-
     const keywords = await extractKeywords(query);
-    console.log(`📋 Extracted nouns: ${keywords.join(', ')}`);
 
     let documents = await this.getKeywordMatchedDocuments(userId, keywords, limit);
 
     if (documents.length === 0) {
-      console.log('⚠️ No keyword matches found. Sending ALL documents to Gemini for semantic understanding...');
       documents = await this.getAllUserDocuments(userId);
-      console.log(`📄 Retrieved ${documents.length} documents for Gemini analysis`);
-    } else {
-      console.log(`✅ Keyword search found ${documents.length} documents`);
     }
 
     if (documents.length === 0) {
@@ -31,8 +24,6 @@ class SearchService extends BaseService {
     }
 
     const results = await this.analyzeWithGemini(query, documents, limit);
-
-    console.log(`✅ RAG search completed: ${results.length} matches found`);
 
     return results;
   }
@@ -92,8 +83,6 @@ class SearchService extends BaseService {
       return documents.slice(0, limit);
     }
 
-    console.log(`🤖 Sending ${documents.length} documents to Gemini for analysis...`);
-
     const documentsContext = documents.map((doc, index) => {
       const preview = doc.extracted_content
         ? doc.extracted_content.substring(0, 1000)
@@ -135,8 +124,6 @@ Maximum ${limit} results.`;
         .map(index => documents[index])
         .filter(doc => doc !== undefined)
         .slice(0, limit);
-
-      console.log(`✅ Gemini analysis complete: ${results.length} matches found`);
 
       return results;
     } catch (error) {

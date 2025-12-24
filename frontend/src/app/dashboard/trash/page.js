@@ -5,14 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usersApi } from '@/lib/api';
 import { ArrowPathIcon, TrashIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function TrashPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Redirect if not superadmin
   useEffect(() => {
@@ -47,7 +46,7 @@ export default function TrashPage() {
       }
     } catch (error) {
       console.error('Error fetching trash users:', error);
-      setError(error?.message || 'Failed to fetch trash users');
+      showError(error?.message || 'Failed to fetch trash users');
     } finally {
       setLoading(false);
     }
@@ -61,13 +60,11 @@ export default function TrashPage() {
     try {
       const response = await usersApi.restoreUser(userId);
       if (response.success) {
-        setSuccess(`User "${userName}" restored successfully!`);
+        showSuccess(`User "${userName}" restored successfully!`);
         await fetchTrashUsers(); // Refresh the list
-        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
-      setError(error?.message || 'Failed to restore user');
-      setTimeout(() => setError(''), 3000);
+      showError(error?.message || 'Failed to restore user');
     }
   };
 
@@ -86,13 +83,11 @@ export default function TrashPage() {
     try {
       const response = await usersApi.permanentDeleteUser(userId);
       if (response.success) {
-        setSuccess(`User "${userName}" permanently deleted!`);
+        showSuccess(`User "${userName}" permanently deleted!`);
         await fetchTrashUsers(); // Refresh the list
-        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
-      setError(error?.message || 'Failed to permanently delete user');
-      setTimeout(() => setError(''), 3000);
+      showError(error?.message || 'Failed to permanently delete user');
     }
   };
 
@@ -129,99 +124,87 @@ export default function TrashPage() {
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Trash</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Trash</h1>
         <p className="text-sm text-gray-600 mt-1">
           Manage deleted users - restore or permanently delete them
         </p>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 p-4">
-          <div className="text-sm text-green-800">{success}</div>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4">
-          <div className="text-sm text-red-800">{error}</div>
-        </div>
-      )}
-
       {/* Trash Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Deleted At
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{u.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-600">{u.email}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    u.role === 'superadmin'
-                      ? 'bg-purple-100 text-purple-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {new Date(u.deleted_at).toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end gap-3">
-                    <button
-                      onClick={() => handleRestoreUser(u.id, u.name)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Restore user"
-                    >
-                      <ArrowPathIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handlePermanentDelete(u.id, u.name)}
-                      disabled={u.id === user.id}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={u.id === user.id ? "You cannot delete yourself" : "Delete permanently"}
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white rounded-lg shadow">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Deleted At
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.map((u) => (
+                <tr key={u.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{u.name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">{u.email}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${u.role === 'superadmin'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-gray-100 text-gray-800'
+                      }`}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {new Date(u.deleted_at).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => handleRestoreUser(u.id, u.name)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Restore user"
+                      >
+                        <ArrowPathIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handlePermanentDelete(u.id, u.name)}
+                        disabled={u.id === user.id}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={u.id === user.id ? "You cannot delete yourself" : "Delete permanently"}
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {users.length === 0 && (
-          <div className="text-center py-12">
-            <TrashIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No deleted users</h3>
-            <p className="mt-1 text-sm text-gray-500">Trash is empty</p>
-          </div>
-        )}
+          {users.length === 0 && (
+            <div className="text-center py-12">
+              <TrashIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No deleted users</h3>
+              <p className="mt-1 text-sm text-gray-500">Trash is empty</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

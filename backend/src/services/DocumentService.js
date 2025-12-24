@@ -51,15 +51,6 @@ class DocumentService extends BaseService {
         }
         const classification = await classifyDocument(extractedContent, userId, folderId);
 
-        console.log('🔍 Auto-classification result:', {
-          file: file.originalname,
-          manualFolderId: folderId,
-          autoClassified: classification.autoClassified,
-          targetFolderId: classification.targetFolderId,
-          matchedKeyword: classification.matchedKeyword,
-          folderName: classification.folderName
-        });
-
         const finalFolderId = classification.autoClassified
           ? classification.targetFolderId
           : (folderId || null);

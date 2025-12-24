@@ -444,41 +444,49 @@ export default function DashboardPage() {
     return filtered;
   }, [documents, searchTerm, selectedLabels]);
 
-  // Separate folders into owned and shared
+  // Separate folders into owned and shared, with search filter applied
   const { ownedFolders, sharedFolders } = useMemo(() => {
-    // Check accessLevel, access_level, dan permissionLevel untuk compatibility
-    const owned = folders.filter(folder => {
+    // First, filter folders by search term
+    let filteredFolders = folders;
+    if (searchTerm) {
+      filteredFolders = folders.filter(folder =>
+        folder.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Then separate into owned and shared
+    const owned = filteredFolders.filter(folder => {
       const accessLvl = folder.accessLevel || folder.access_level || folder.permissionLevel;
       return accessLvl === 'owner';
     });
-    const shared = folders.filter(folder => {
+    const shared = filteredFolders.filter(folder => {
       const accessLvl = folder.accessLevel || folder.access_level || folder.permissionLevel;
       return accessLvl && accessLvl !== 'owner';
     });
-    console.log('🔍 useMemo - owned:', owned.length, 'shared:', shared.length);
     return { ownedFolders: owned, sharedFolders: shared };
-  }, [folders]);
+  }, [folders, searchTerm]);
 
   return (
     <>
       {/* Breadcrumbs */}
-      <div className="flex items-center mb-6 text-sm">
+      <div className="mb-6 overflow-x-auto">
+        <div className="flex items-center text-sm whitespace-nowrap">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
+            className="text-gray-600 hover:text-gray-900 transition-colors font-medium flex-shrink-0"
           >
             Home
           </button>
-          <span className="mx-2 text-gray-400">{'>'}</span>
+          <span className="mx-2 text-gray-400 flex-shrink-0">{'>'}</span>
           <button
             onClick={() => handleBreadcrumbClick(null)}
-            className={`transition-colors font-medium ${!currentFolderId ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`transition-colors font-medium flex-shrink-0 ${!currentFolderId ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
           >
             My Files
           </button>
 
           {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.id} className="flex items-center">
+            <div key={crumb.id} className="flex items-center flex-shrink-0">
               <span className="mx-2 text-gray-400">{'>'}</span>
               <button
                 onClick={() => handleBreadcrumbClick(crumb.id)}
@@ -489,8 +497,32 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Actions */}
+      {/* Search and Actions Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        {/* Search - Left side */}
+        <div className="flex-1">
+          <DocumentFilters
+            onSearch={handleSearch}
+            onFolderFilter={(folderId) => {
+              const params = new URLSearchParams(searchParams);
+              if (folderId) {
+                params.set('folderId', folderId);
+              } else {
+                params.delete('folderId');
+              }
+              router.push(`?${params.toString()}`);
+            }}
+            onLabelFilter={handleLabelFilter}
+            onClearFilters={handleClearFilters}
+            currentSearch={searchTerm}
+            currentFolderId={currentFolderId}
+            currentLabels={selectedLabels}
+          />
+        </div>
+
+        {/* Actions - Right side */}
         <DocumentActions
           onUploadComplete={handleUploadComplete}
           onCreateFolder={handleCreateFolder}
@@ -498,45 +530,27 @@ export default function DashboardPage() {
           loading={loading}
           currentFolderId={currentFolderId}
         />
+      </div>
 
-        {/* Filters */}
-        <DocumentFilters
-          onSearch={handleSearch}
-          onFolderFilter={(folderId) => {
-            const params = new URLSearchParams(searchParams);
-            if (folderId) {
-              params.set('folderId', folderId);
-            } else {
-              params.delete('folderId');
-            }
-            router.push(`?${params.toString()}`);
-          }}
-          onLabelFilter={handleLabelFilter}
-          onClearFilters={handleClearFilters}
-          currentSearch={searchTerm}
-          currentFolderId={currentFolderId}
-          currentLabels={selectedLabels}
-        />
-
-        {/* Document List */}
-        <DocumentList
-          documents={filteredDocuments}
-          ownedFolders={ownedFolders}
-          sharedFolders={sharedFolders}
-          loading={loading}
-          onFolderClick={handleFolderClick}
-          onFolderEdit={handleFolderEdit}
-          onFolderDelete={handleFolderDelete}
-          onFolderShare={handleFolderShare}
-          onFolderCopy={handleFolderCopy}
-          onDocumentView={handleDocumentView}
-          onDocumentEdit={handleDocumentEdit}
-          onDocumentDelete={handleDocumentDelete}
-          onDocumentDownload={handleDocumentDownload}
-          onDocumentLabels={handleDocumentLabels}
-          onDocumentDetails={handleDocumentDetails}
-          accessLevel="owner"
-        />
+      {/* Document List */}
+      <DocumentList
+        documents={filteredDocuments}
+        ownedFolders={ownedFolders}
+        sharedFolders={sharedFolders}
+        loading={loading}
+        onFolderClick={handleFolderClick}
+        onFolderEdit={handleFolderEdit}
+        onFolderDelete={handleFolderDelete}
+        onFolderShare={handleFolderShare}
+        onFolderCopy={handleFolderCopy}
+        onDocumentView={handleDocumentView}
+        onDocumentEdit={handleDocumentEdit}
+        onDocumentDelete={handleDocumentDelete}
+        onDocumentDownload={handleDocumentDownload}
+        onDocumentLabels={handleDocumentLabels}
+        onDocumentDetails={handleDocumentDetails}
+        accessLevel="owner"
+      />
 
       {/* Modals */}
       {showFolderSharingModal && selectedFolder && (

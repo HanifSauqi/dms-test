@@ -3,26 +3,7 @@ const pool = require('../utils/database');
 const { successResponse, errorResponse } = require('../utils/response');
 const authConfig = require('../config/auth.config');
 const { logUserActivity } = require('../utils/userActivityLogger');
-
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Password validation
-const validatePassword = (password) => {
-  if (password.length < 8) {
-    return { valid: false, message: 'Password must be at least 8 characters' };
-  }
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one uppercase letter' };
-  }
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one lowercase letter' };
-  }
-  if (!/[0-9]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one number' };
-  }
-  return { valid: true };
-};
+const { validatePassword, validateEmail } = require('../utils/validators');
 
 /**
  * Create new user (superadmin only)
@@ -42,7 +23,7 @@ const createUser = async (req, res) => {
     }
 
     // Validate email format
-    if (!EMAIL_REGEX.test(email)) {
+    if (!validateEmail(email)) {
       return errorResponse(res, 'Invalid email format', 400);
     }
 
@@ -104,7 +85,7 @@ const createUser = async (req, res) => {
     }, 201);
 
   } catch (error) {
-    console.error('Create user error:', error);
+    logger.error('Create user error:', error);
     errorResponse(res, 'Failed to create user', 500, error.message);
   }
 };
@@ -116,7 +97,7 @@ const createUser = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC'
+      'SELECT id, name, email, role, is_active, created_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC'
     );
 
     successResponse(res, 'Users retrieved successfully', {
@@ -139,7 +120,7 @@ const getUserById = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users WHERE id = $1 AND deleted_at IS NULL',
+      'SELECT id, name, email, role, is_active, created_at FROM users WHERE id = $1 AND deleted_at IS NULL',
       [id]
     );
 
@@ -454,6 +435,88 @@ const permanentDeleteUser = async (req, res) => {
   }
 };
 
+/**
+ * Toggle user account status (enable/disable) (superadmin only)
+ * Disabled users cannot login to the system
+ */
+const toggleUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    // Validate input
+    if (typeof isActive !== 'boolean') {
+      return errorResponse(res, 'isActive field is required and must be a boolean', 400);
+    }
+
+    // Prevent disabling yourself
+    if (parseInt(id) === req.user.id && !isActive) {
+      return errorResponse(res, 'You cannot disable your own account', 400);
+    }
+
+    // Check if user exists and is not deleted
+    const existingUser = await pool.query(
+      'SELECT id, name, email, role, is_active, deleted_at FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (existingUser.rows.length === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    const user = existingUser.rows[0];
+
+    // Check if user is in trash
+    if (user.deleted_at !== null) {
+      return errorResponse(res, 'Cannot modify status of deleted user. Please restore the user first.', 400);
+    }
+
+    // Prevent disabling the last active superadmin
+    if (user.role === 'superadmin' && !isActive) {
+      const activeSuperadminsResult = await pool.query(
+        'SELECT COUNT(*) as count FROM users WHERE role = $1 AND is_active = TRUE AND deleted_at IS NULL',
+        ['superadmin']
+      );
+
+      const activeSuperadminsCount = parseInt(activeSuperadminsResult.rows[0].count);
+
+      if (activeSuperadminsCount <= 1) {
+        return errorResponse(res, 'Cannot disable the last active superadmin account', 400);
+      }
+    }
+
+    // Update user status
+    const result = await pool.query(
+      'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, name, email, role, is_active, created_at',
+      [isActive, id]
+    );
+
+    // Log user activity
+    await logUserActivity(req.user.id, 'edit_user', {
+      description: `${isActive ? 'Enabled' : 'Disabled'} user: ${user.name} (${user.email})`,
+      targetType: 'user',
+      targetId: id,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      metadata: {
+        action: isActive ? 'enable' : 'disable',
+        previousStatus: user.is_active,
+        newStatus: isActive,
+        targetUserEmail: user.email,
+        targetUserRole: user.role
+      }
+    });
+
+    successResponse(res, `User ${isActive ? 'enabled' : 'disabled'} successfully`, {
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Toggle user status error:', error);
+    errorResponse(res, 'Failed to update user status', 500, error.message);
+  }
+};
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -462,5 +525,6 @@ module.exports = {
   deleteUser,
   getTrashUsers,
   restoreUser,
-  permanentDeleteUser
+  permanentDeleteUser,
+  toggleUserStatus
 };

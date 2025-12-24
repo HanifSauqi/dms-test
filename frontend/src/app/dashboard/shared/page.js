@@ -520,7 +520,7 @@ export default function SharedPage() {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {folder.name}
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">
                             Shared by {folder.owner?.name || 'Unknown'} • {folder.createdAt ? new Date(folder.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'months'}
                           </p>
                         </div>
@@ -578,7 +578,7 @@ export default function SharedPage() {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {document.title}
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">
                             Shared by {document.ownerName || 'Unknown'} • {document.createdAt ? new Date(document.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'months'}
                           </p>
                         </div>

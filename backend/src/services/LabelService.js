@@ -20,30 +20,34 @@ class LabelService extends BaseService {
     const defaultColor = '#3b82f6';
     const labelColor = color || defaultColor;
 
+    // Check for duplicate label name for this specific user
     const duplicate = await pool.query(
-      'SELECT id FROM labels WHERE name = $1',
-      [name.trim()]
+      'SELECT id FROM labels WHERE name = $1 AND user_id = $2',
+      [name.trim(), userId]
     );
 
     if (duplicate.rows.length > 0) {
       throw new Error('Label with this name already exists');
     }
 
+    // Insert label with user_id
     const result = await pool.query(
-      'INSERT INTO labels (name, color) VALUES ($1, $2) RETURNING *',
-      [name.trim(), labelColor]
+      'INSERT INTO labels (name, color, user_id) VALUES ($1, $2, $3) RETURNING *',
+      [name.trim(), labelColor, userId]
     );
 
     return result.rows[0];
   }
 
-  async getLabels() {
+  async getLabels(userId) {
     const result = await pool.query(
       `SELECT l.*, COUNT(dl.document_id) as document_count
        FROM labels l
        LEFT JOIN document_labels dl ON l.id = dl.label_id
+       WHERE l.user_id = $1
        GROUP BY l.id
-       ORDER BY l.name ASC`
+       ORDER BY l.name ASC`,
+      [userId]
     );
 
     return result.rows.map(label => ({
@@ -52,10 +56,10 @@ class LabelService extends BaseService {
     }));
   }
 
-  async getLabelById(labelId) {
+  async getLabelById(labelId, userId) {
     const result = await pool.query(
-      'SELECT * FROM labels WHERE id = $1',
-      [labelId]
+      'SELECT * FROM labels WHERE id = $1 AND user_id = $2',
+      [labelId, userId]
     );
 
     if (result.rows.length === 0) {
@@ -79,12 +83,13 @@ class LabelService extends BaseService {
     };
   }
 
-  async updateLabel(labelId, data) {
+  async updateLabel(labelId, data, userId) {
     const { name, color } = data;
 
+    // Check label exists and belongs to user
     const label = await pool.query(
-      'SELECT id FROM labels WHERE id = $1',
-      [labelId]
+      'SELECT id FROM labels WHERE id = $1 AND user_id = $2',
+      [labelId, userId]
     );
 
     if (label.rows.length === 0) {
@@ -103,9 +108,10 @@ class LabelService extends BaseService {
         throw new Error('Label name too long (max 50 characters)');
       }
 
+      // Check for duplicate among user's own labels
       const duplicate = await pool.query(
-        'SELECT id FROM labels WHERE name = $1 AND id != $2',
-        [name.trim(), labelId]
+        'SELECT id FROM labels WHERE name = $1 AND user_id = $2 AND id != $3',
+        [name.trim(), userId, labelId]
       );
 
       if (duplicate.rows.length > 0) {
@@ -137,10 +143,11 @@ class LabelService extends BaseService {
     return result.rows[0];
   }
 
-  async deleteLabel(labelId) {
+  async deleteLabel(labelId, userId) {
+    // Check label exists and belongs to user
     const label = await pool.query(
-      'SELECT id, name FROM labels WHERE id = $1',
-      [labelId]
+      'SELECT id, name FROM labels WHERE id = $1 AND user_id = $2',
+      [labelId, userId]
     );
 
     if (label.rows.length === 0) {
@@ -156,9 +163,10 @@ class LabelService extends BaseService {
   }
 
   async assignToDocument(labelId, documentId, userId) {
+    // Check label exists and belongs to user
     const label = await pool.query(
-      'SELECT id FROM labels WHERE id = $1',
-      [labelId]
+      'SELECT id FROM labels WHERE id = $1 AND user_id = $2',
+      [labelId, userId]
     );
 
     if (label.rows.length === 0) {
@@ -183,9 +191,10 @@ class LabelService extends BaseService {
   }
 
   async removeFromDocument(labelId, documentId, userId) {
+    // Check label exists and belongs to user
     const label = await pool.query(
-      'SELECT id FROM labels WHERE id = $1',
-      [labelId]
+      'SELECT id FROM labels WHERE id = $1 AND user_id = $2',
+      [labelId, userId]
     );
 
     if (label.rows.length === 0) {

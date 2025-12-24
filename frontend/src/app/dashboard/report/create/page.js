@@ -7,6 +7,8 @@ import {
   PlusIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { reportApi } from '@/lib/api';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function CreateReportPage() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function CreateReportPage() {
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleAddKeyword = () => {
     const keyword = keywordInput.trim();
@@ -65,32 +68,31 @@ export default function CreateReportPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     try {
-      // Generate unique ID
-      const reportId = `report-${Date.now()}`;
+      setLoading(true);
 
-      const newReport = {
-        id: reportId,
-        ...formData,
-        createdAt: new Date().toISOString()
-      };
+      const response = await reportApi.create({
+        name: formData.name.trim(),
+        description: formData.description,
+        keywords: formData.keywords,
+        timeRange: formData.timeRange
+      });
 
-      // Save to localStorage
-      const savedReports = localStorage.getItem('customReports');
-      const reports = savedReports ? JSON.parse(savedReports) : [];
-      reports.push(newReport);
-      localStorage.setItem('customReports', JSON.stringify(reports));
+      showSuccess('Report created successfully');
 
       // Redirect to report detail
+      const reportId = response.data?.report?.id || response.report?.id;
       router.push(`/dashboard/report/${reportId}`);
     } catch (error) {
       console.error('Error creating report:', error);
-      alert('Failed to create report');
+      showError(error.message || 'Failed to create report');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,7 +125,7 @@ export default function CreateReportPage() {
           </div>
         </div>
         <div className="ml-4">
-          <h1 className="text-2xl font-bold text-gray-900">Create New Report</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create New Report</h1>
           <p className="text-sm text-gray-600 mt-1">
             Set up a statistical report with keywords and time range
           </p>
@@ -142,9 +144,8 @@ export default function CreateReportPage() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 sm:px-3 sm:py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="e.g., MCU Statistical Report"
             />
             {errors.name && (
@@ -161,7 +162,7 @@ export default function CreateReportPage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Brief description of this report"
             />
           </div>
@@ -180,9 +181,8 @@ export default function CreateReportPage() {
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className={`flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                  errors.keyword || errors.keywords ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`flex-1 px-3 py-2.5 sm:px-3 sm:py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.keyword || errors.keywords ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="Enter keyword and press Enter or click Add"
               />
               <button
@@ -235,7 +235,7 @@ export default function CreateReportPage() {
             <select
               value={formData.timeRange}
               onChange={(e) => setFormData({ ...formData, timeRange: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="daily">Daily (Last 7 days)</option>
               <option value="weekly">Weekly (Last 7 weeks)</option>
@@ -249,9 +249,10 @@ export default function CreateReportPage() {
         <div className="mt-6 flex gap-3">
           <button
             type="submit"
-            className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
           >
-            Create Report
+            {loading ? 'Creating...' : 'Create Report'}
           </button>
           <button
             type="button"

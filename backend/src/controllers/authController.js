@@ -4,26 +4,7 @@ const pool = require('../utils/database');
 const { successResponse, errorResponse } = require('../utils/response');
 const authConfig = require('../config/auth.config');
 const { logUserActivity } = require('../utils/userActivityLogger');
-
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Password validation
-const validatePassword = (password) => {
-  if (password.length < 8) {
-    return { valid: false, message: 'Password must be at least 8 characters' };
-  }
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one uppercase letter' };
-  }
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one lowercase letter' };
-  }
-  if (!/[0-9]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one number' };
-  }
-  return { valid: true };
-};
+const { validatePassword, validateEmail } = require('../utils/validators');
 
 const register = async (req, res) => {
   try {
@@ -40,7 +21,7 @@ const register = async (req, res) => {
     }
 
     // Validate email format
-    if (!EMAIL_REGEX.test(email)) {
+    if (!validateEmail(email)) {
       return errorResponse(res, 'Invalid email format', 400);
     }
 
@@ -115,13 +96,13 @@ const login = async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Validate email format
-    if (!EMAIL_REGEX.test(normalizedEmail)) {
+    if (!validateEmail(normalizedEmail)) {
       return errorResponse(res, 'Invalid email format', 400);
     }
 
     // Find user
     const userResult = await pool.query(
-      'SELECT id, name, email, password, role, created_at FROM users WHERE email = $1',
+      'SELECT id, name, email, password, role, is_active, deleted_at, created_at FROM users WHERE email = $1',
       [normalizedEmail]
     );
 
@@ -130,6 +111,16 @@ const login = async (req, res) => {
     }
 
     const user = userResult.rows[0];
+
+    // Check if account is soft deleted
+    if (user.deleted_at !== null) {
+      return errorResponse(res, 'This account has been deleted. Please contact the administrator.', 403);
+    }
+
+    // Check if account is disabled
+    if (!user.is_active) {
+      return errorResponse(res, 'Akun Anda telah dinonaktifkan. Silakan hubungi administrator.', 403);
+    }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);

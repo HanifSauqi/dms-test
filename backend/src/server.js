@@ -22,6 +22,7 @@ const folderRoutes = require('./routes/folders');
 const documentRoutes = require('./routes/documents');
 const labelRoutes = require('./routes/labels');
 const classificationRoutes = require('./routes/classification');
+const reportRoutes = require('./routes/reports');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,6 +56,7 @@ app.use('/api/folders', folderRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/labels', labelRoutes);
 app.use('/api/classification', classificationRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -138,4 +140,4 @@ const gracefulShutdown = async (signal) => {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
- 
+
