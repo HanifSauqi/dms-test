@@ -47,6 +47,7 @@ Script ini akan otomatis:
 - ✅ Membersihkan cache & old dependencies
 - ✅ Install semua dependencies (root, backend, frontend)
 - ✅ Membuat file environment template
+- ✅ Membuat folder `uploads` untuk penyimpanan file
 
 ### Step 3: Edit `backend/.env`
 
@@ -144,6 +145,13 @@ Pastikan menjalankan dari folder `backend`:
 ```bash
 cd backend
 npm run create-superadmin
+```
+
+### Error: `ENOENT uploads folder`
+
+Buat folder uploads manual:
+```bash
+mkdir backend\uploads
 ```
 
 ---

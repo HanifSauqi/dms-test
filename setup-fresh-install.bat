@@ -13,7 +13,7 @@ echo This script will:
 echo [1] Clean any existing build artifacts
 echo [2] Install all dependencies
 echo [3] Setup environment files
-echo [4] Guide database setup
+echo [4] Create uploads folder
 echo.
 pause
 
@@ -123,10 +123,20 @@ if not exist "frontend\.env.local" (
 )
 
 REM ----------------------------------------------------------------------------
-REM Step 4: Final Instructions
+REM Step 4: Create uploads folder
 REM ----------------------------------------------------------------------------
 echo.
-echo [Step 4/4] Next Steps
+echo [Step 4/4] Creating uploads folder...
+if not exist "backend\uploads" (
+    mkdir "backend\uploads"
+    echo DONE: backend\uploads folder created
+) else (
+    echo backend\uploads folder already exists ^(skipping^)
+)
+
+REM ----------------------------------------------------------------------------
+REM Final Instructions
+REM ----------------------------------------------------------------------------
 echo.
 echo ============================================
 echo Setup Complete!
