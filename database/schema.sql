@@ -131,6 +131,20 @@ CREATE TABLE user_activities (
     )
 );
 
+-- Reports Table
+-- Stores user-created statistical reports with keywords for document counting
+CREATE TABLE reports (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    keywords TEXT[] NOT NULL DEFAULT '{}',
+    time_range VARCHAR(50) NOT NULL DEFAULT 'monthly',
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_report_name_per_user UNIQUE (name, user_id)
+);
+
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
@@ -176,6 +190,10 @@ CREATE INDEX idx_user_activities_created ON user_activities(created_at DESC);
 CREATE INDEX idx_user_activities_target ON user_activities(target_type, target_id);
 CREATE INDEX idx_user_activities_user_date ON user_activities(user_id, created_at DESC);
 
+-- Reports indexes
+CREATE INDEX idx_reports_user_id ON reports(user_id);
+CREATE INDEX idx_reports_keywords ON reports USING GIN(keywords);
+
 -- ============================================================================
 -- COMMENTS
 -- ============================================================================
@@ -188,6 +206,7 @@ COMMENT ON TABLE folder_permissions IS 'User access permissions for shared folde
 COMMENT ON TABLE user_classification_rules IS 'Auto-classification rules for uploaded documents';
 COMMENT ON TABLE document_activities IS 'Document-specific activity tracking';
 COMMENT ON TABLE user_activities IS 'Comprehensive user activity log for audit and monitoring';
+COMMENT ON TABLE reports IS 'User-created statistical reports with keywords for document counting';
 
 COMMENT ON COLUMN users.role IS 'User role: user (default) or superadmin (can manage users)';
 COMMENT ON COLUMN documents.extracted_content IS 'Full extracted text content from the document';
