@@ -3,7 +3,7 @@ REM ============================================================================
 REM Document Management System - PostgreSQL Database Setup (Windows)
 REM ============================================================================
 REM This script sets up the database using local PostgreSQL installation
-REM Database name: dms_db_test_2
+REM Database name: dms_db
 REM ============================================================================
 
 setlocal enabledelayedexpansion
@@ -13,7 +13,7 @@ echo DMS Database Setup (PostgreSQL)
 echo =========================================
 
 REM Configuration
-set DB_NAME=dms_db_test_2
+set DB_NAME=dms_db
 set DB_USER=postgres
 set DB_HOST=localhost
 set DB_PORT=5432

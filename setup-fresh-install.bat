@@ -21,7 +21,7 @@ REM ----------------------------------------------------------------------------
 REM Step 1: Clean existing artifacts (just in case)
 REM ----------------------------------------------------------------------------
 echo.
-echo [Step 1/5] Cleaning build artifacts...
+echo [Step 1/4] Cleaning build artifacts...
 if exist "frontend\.next" rd /s /q "frontend\.next"
 if exist "frontend\node_modules" rd /s /q "frontend\node_modules"
 if exist "backend\node_modules" rd /s /q "backend\node_modules"
@@ -35,7 +35,7 @@ REM ----------------------------------------------------------------------------
 REM Step 2: Install Dependencies
 REM ----------------------------------------------------------------------------
 echo.
-echo [Step 2/5] Installing dependencies (this may take a few minutes)...
+echo [Step 2/4] Installing dependencies (this may take a few minutes)...
 echo.
 echo Installing root dependencies...
 call npm install
@@ -76,21 +76,40 @@ REM ----------------------------------------------------------------------------
 REM Step 3: Setup Environment Files
 REM ----------------------------------------------------------------------------
 echo.
-echo [Step 3/5] Setting up environment files...
+echo [Step 3/4] Setting up environment files...
 
 REM Backend .env
 if not exist "backend\.env" (
-    echo Creating backend\.env from template...
-    copy "backend\.env.example" "backend\.env" >nul
+    echo Creating backend\.env...
+    (
+        echo # Database Configuration
+        echo DB_HOST=localhost
+        echo DB_PORT=5432
+        echo DB_NAME=dms_db
+        echo DB_USER=postgres
+        echo DB_PASSWORD=YOUR_PASSWORD_HERE
+        echo.
+        echo # JWT Secret ^(WAJIB - minimal 32 karakter^)
+        echo JWT_SECRET=your_jwt_secret_key_minimum_32_characters_long
+        echo.
+        echo # Gemini AI ^(Opsional - untuk fitur AI^)
+        echo # Get API key from: https://makersuite.google.com/app/apikey
+        echo GEMINI_API_KEY=
+        echo.
+        echo # Server Configuration
+        echo PORT=3001
+        echo CORS_ORIGIN=http://localhost:3000
+        echo NODE_ENV=development
+    ) > "backend\.env"
     echo DONE: backend\.env created
     echo.
-    echo IMPORTANT: Please edit backend\.env and set:
+    echo IMPORTANT: Edit backend\.env and set:
     echo   - DB_PASSWORD: Your PostgreSQL password
-    echo   - GEMINI_API_KEY: Your Gemini API key
-    echo   Get Gemini API key: https://makersuite.google.com/app/apikey
+    echo   - JWT_SECRET: Random string minimal 32 karakter
+    echo   - GEMINI_API_KEY: ^(Optional^) Get from makersuite.google.com
     echo.
 ) else (
-    echo backend\.env already exists (skipping)
+    echo backend\.env already exists ^(skipping^)
 )
 
 REM Frontend .env.local
@@ -100,62 +119,34 @@ if not exist "frontend\.env.local" (
     echo NEXT_PUBLIC_API_URL=http://localhost:3001/api >> "frontend\.env.local"
     echo DONE: frontend\.env.local created
 ) else (
-    echo frontend\.env.local already exists (skipping)
+    echo frontend\.env.local already exists ^(skipping^)
 )
 
 REM ----------------------------------------------------------------------------
-REM Step 4: Database Setup Instructions
+REM Step 4: Final Instructions
 REM ----------------------------------------------------------------------------
 echo.
-echo [Step 4/5] Database Setup
-echo.
-echo Before running the application, you need to setup the database:
-echo.
-echo 1. Make sure PostgreSQL is installed and running
-echo 2. Edit backend\.env with your PostgreSQL password
-echo 3. Run database setup:
-echo    cd database
-echo    setup-postgresql.bat
-echo.
-echo Or if using Docker:
-echo    cd database
-echo    setup-docker.bat
-echo.
-
-REM ----------------------------------------------------------------------------
-REM Step 5: Create Superadmin Instructions
-REM ----------------------------------------------------------------------------
-echo [Step 5/5] After database setup, create superadmin account:
-echo.
-echo    cd backend
-echo    npm run create-superadmin
-echo.
-echo Default credentials will be:
-echo    Email: admin@dms.com
-echo    Password: admin123
-echo.
-
-REM ----------------------------------------------------------------------------
-REM Final Instructions
-REM ----------------------------------------------------------------------------
+echo [Step 4/4] Next Steps
 echo.
 echo ============================================
 echo Setup Complete!
 echo ============================================
 echo.
-echo Next Steps:
+echo Follow these steps to finish:
 echo.
 echo 1. Edit backend\.env:
-echo    - Set DB_PASSWORD (your PostgreSQL password)
-echo    - Set GEMINI_API_KEY (get from https://makersuite.google.com/app/apikey)
+echo    - Set DB_PASSWORD ^(your PostgreSQL password^)
+echo    - Set JWT_SECRET ^(random string, min 32 chars^)
 echo.
 echo 2. Setup database:
 echo    cd database
 echo    setup-postgresql.bat
 echo.
-echo 3. Create superadmin:
+echo 3. Create superadmin account:
 echo    cd backend
 echo    npm run create-superadmin
+echo.
+echo    Default: admin@dms.com / admin123
 echo.
 echo 4. Run the application:
 echo    Terminal 1: cd backend ^&^& npm run dev

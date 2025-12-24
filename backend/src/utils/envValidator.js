@@ -4,13 +4,33 @@
  */
 
 const requiredEnvVars = {
-  // Database
-  DATABASE_URL: {
+  // Database - Support both DATABASE_URL or individual DB_* variables
+  DB_HOST: {
+    required: false,
+    default: 'localhost',
+    description: 'PostgreSQL host'
+  },
+  DB_PORT: {
+    required: false,
+    default: '5432',
+    description: 'PostgreSQL port'
+  },
+  DB_NAME: {
+    required: false,
+    default: 'dms_db',
+    description: 'PostgreSQL database name'
+  },
+  DB_USER: {
+    required: false,
+    default: 'postgres',
+    description: 'PostgreSQL username'
+  },
+  DB_PASSWORD: {
     required: true,
-    description: 'PostgreSQL connection string',
+    description: 'PostgreSQL password',
     validate: (value) => {
-      if (!value.startsWith('postgres://') && !value.startsWith('postgresql://')) {
-        return 'DATABASE_URL must be a valid PostgreSQL connection string';
+      if (!value || value.length === 0) {
+        return 'DB_PASSWORD is required';
       }
       return null;
     }
