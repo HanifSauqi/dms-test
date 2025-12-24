@@ -36,21 +36,6 @@ if ! command -v psql &> /dev/null; then
     exit 1
 fi
 
-# Check if pgvector extension is installed
-echo "Checking for pgvector extension..."
-if ! psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d postgres -c "SELECT * FROM pg_available_extensions WHERE name='vector';" | grep -q vector; then
-    echo "⚠️  Warning: pgvector extension not found"
-    echo "The database will be created, but vector search features will not work"
-    echo "To install pgvector, visit: https://github.com/pgvector/pgvector"
-    echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "Setup cancelled"
-        exit 0
-    fi
-fi
-
 # Check if database already exists
 if psql -U $DB_USER -h $DB_HOST -p $DB_PORT -lqt | cut -d \| -f 1 | grep -qw $DB_NAME; then
     echo "⚠️  Database '$DB_NAME' already exists"

@@ -19,7 +19,7 @@ DB_USER="postgres"
 DB_PASSWORD="postgres"
 DB_PORT="5432"
 CONTAINER_NAME="dms-postgres"
-PGVECTOR_IMAGE="pgvector/pgvector:pg18"
+POSTGRES_IMAGE="postgres:16"
 
 echo ""
 echo "Configuration:"
@@ -74,14 +74,14 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 # Create and start PostgreSQL container
-echo "Creating PostgreSQL container with pgvector..."
+echo "Creating PostgreSQL container..."
 docker run -d \
     --name $CONTAINER_NAME \
     -e POSTGRES_USER=$DB_USER \
     -e POSTGRES_PASSWORD=$DB_PASSWORD \
     -e POSTGRES_DB=$DB_NAME \
     -p $DB_PORT:5432 \
-    $PGVECTOR_IMAGE
+    $POSTGRES_IMAGE
 
 echo "Waiting for PostgreSQL to be ready..."
 sleep 5

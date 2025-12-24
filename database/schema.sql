@@ -7,9 +7,6 @@
 --              auto-classification features
 -- ============================================================================
 
--- Enable pgvector extension for future semantic search capabilities
-CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
-
 -- ============================================================================
 -- TABLES
 -- ============================================================================

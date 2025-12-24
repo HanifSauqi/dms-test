@@ -6,7 +6,7 @@ REST API server untuk aplikasi DMS menggunakan Express.js.
 
 - **Framework:** Express 5
 - **Runtime:** Node.js 18+
-- **Database:** PostgreSQL 12+ dengan pgvector
+- **Database:** PostgreSQL 12+
 - **Authentication:** JWT (JSON Web Tokens)
 - **File Upload:** Multer
 - **Password Hashing:** Bcrypt
@@ -164,14 +164,12 @@ API menggunakan JWT untuk authentication:
 - ✅ Folder-level permissions (Viewer, Editor, Owner)
 - ✅ File upload & management
 - ✅ AI-powered document processing (Gemini)
-- ✅ Semantic search dengan pgvector
 - ✅ Activity logging & audit trail
 - ✅ Auto-classification dokumen
 
 ## 💾 Database
 
-Menggunakan PostgreSQL dengan extension:
-- **pgvector** - Untuk vector similarity search
+Menggunakan PostgreSQL.
 
 Connection pool otomatis dikelola oleh `pg` library.
 

@@ -18,7 +18,7 @@ set DB_USER=postgres
 set DB_PASSWORD=postgres
 set DB_PORT=5432
 set CONTAINER_NAME=dms-postgres
-set PGVECTOR_IMAGE=pgvector/pgvector:pg18
+set POSTGRES_IMAGE=postgres:16
 
 echo.
 echo Configuration:
@@ -77,8 +77,8 @@ if not errorlevel 1 (
 )
 
 REM Create and start PostgreSQL container
-echo Creating PostgreSQL container with pgvector...
-docker run -d --name %CONTAINER_NAME% -e POSTGRES_USER=%DB_USER% -e POSTGRES_PASSWORD=%DB_PASSWORD% -e POSTGRES_DB=%DB_NAME% -p %DB_PORT%:5432 %PGVECTOR_IMAGE%
+echo Creating PostgreSQL container...
+docker run -d --name %CONTAINER_NAME% -e POSTGRES_USER=%DB_USER% -e POSTGRES_PASSWORD=%DB_PASSWORD% -e POSTGRES_DB=%DB_NAME% -p %DB_PORT%:5432 %POSTGRES_IMAGE%
 
 echo Waiting for PostgreSQL to be ready...
 timeout /t 5 /nobreak >nul
