@@ -79,48 +79,27 @@ export default function DashboardPage() {
         const allFoldersFromApi = ownedFoldersResponse.data?.folders || ownedFoldersResponse.folders || [];
         const sharedFoldersData = sharedFoldersResponse.data?.sharedFolders || sharedFoldersResponse.sharedFolders || [];
 
-        console.log('📊 allFoldersFromApi:', allFoldersFromApi);
-        console.log('📊 Sample folder:', allFoldersFromApi[0]);
-        console.log('📊 sharedFoldersData:', sharedFoldersData);
-
         // Filter owned folders - hanya ambil yang accessLevel === 'owner'
         // karena getFolders() mengembalikan semua folder (owned + shared)
         // Backend mengembalikan accessLevel (camelCase) dari controller
         const ownedFolders = allFoldersFromApi.filter(f => {
           const isOwner = f.accessLevel === 'owner' || f.access_level === 'owner';
-          console.log(`📁 Folder "${f.name}": accessLevel="${f.accessLevel}", access_level="${f.access_level}", isOwner=${isOwner}`);
           return isOwner;
         });
-
-        console.log('✅ ownedFolders:', ownedFolders.length);
-        console.log('✅ sharedFoldersData:', sharedFoldersData.length);
-        console.log('📊 Sample sharedFolder from API:', sharedFoldersData[0]);
 
         // Combine folders dengan flag untuk membedakan
         // Pastikan semua folder punya accessLevel (camelCase) untuk konsistensi
         // sharedFoldersData menggunakan permissionLevel, bukan accessLevel
-        const mappedSharedFolders = sharedFoldersData.map(f => {
-          const mapped = {
-            ...f,
-            accessLevel: f.permissionLevel || f.accessLevel,
-            access_level: f.permissionLevel || f.access_level
-          };
-          console.log(`🔄 Mapped shared folder "${f.name}":`, {
-            original_permissionLevel: f.permissionLevel,
-            original_accessLevel: f.accessLevel,
-            mapped_accessLevel: mapped.accessLevel,
-            mapped_access_level: mapped.access_level
-          });
-          return mapped;
-        });
+        const mappedSharedFolders = sharedFoldersData.map(f => ({
+          ...f,
+          accessLevel: f.permissionLevel || f.accessLevel,
+          access_level: f.permissionLevel || f.access_level
+        }));
 
         const allFolders = [
           ...ownedFolders.map(f => ({ ...f, accessLevel: 'owner', access_level: 'owner' })),
           ...mappedSharedFolders
         ];
-
-        console.log('✅ allFolders combined:', allFolders.length);
-        console.log('📂 All folders:', allFolders);
 
         setFolders(allFolders);
         setDocuments(documentsResponse.data?.documents || documentsResponse.documents || []);
@@ -311,50 +290,38 @@ export default function DashboardPage() {
   };
 
   const handleDocumentEdit = (document) => {
-    console.log('✏️ Page: handleDocumentEdit called', document);
     setSelectedDocument(document);
     setShowDocumentEdit(true);
   };
 
   const handleDocumentDelete = async (document) => {
-    console.log('🗑️ Page: handleDocumentDelete called', document);
     if (!window.confirm(`Are you sure you want to delete "${document.title}"?`)) {
       return;
     }
 
     try {
-      console.log('🗑️ Page: Calling documentApi.delete with ID:', document.id);
       await documentApi.delete(document.id);
       showSuccess('Document deleted successfully');
       fetchData();
     } catch (error) {
-      console.error('❌ Page: Error deleting document:', error);
+      console.error('Error deleting document:', error);
       showError(error.message || 'Failed to delete document');
     }
   };
 
   const handleDocumentDownload = async (doc) => {
-    console.log('⬇️ Page: handleDocumentDownload called', doc);
     try {
-      console.log('⬇️ Page: Calling documentApi.download with ID:', doc.id);
       const response = await documentApi.download(doc.id);
-      console.log('⬇️ Page: Download response received:', response);
-      console.log('⬇️ Page: Response type:', typeof response);
-      console.log('⬇️ Page: Response instanceof Blob:', response instanceof Blob);
 
       // The response is already a Blob from the interceptor
       const blob = response instanceof Blob ? response : new Blob([response]);
-      console.log('⬇️ Page: Blob created, size:', blob.size);
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
-      console.log('⬇️ Page: Object URL created:', url);
-
       const link = window.document.createElement('a');
       link.href = url;
       const fileName = doc.fileName || doc.title || 'download';
       link.setAttribute('download', fileName);
-      console.log('⬇️ Page: Downloading as:', fileName);
 
       window.document.body.appendChild(link);
       link.click();
@@ -362,26 +329,18 @@ export default function DashboardPage() {
       window.URL.revokeObjectURL(url);
 
       showSuccess('Document downloaded successfully');
-      console.log('✅ Page: Download completed successfully');
     } catch (error) {
-      console.error('❌ Page: Error downloading document:', error);
-      console.error('❌ Page: Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
+      console.error('Error downloading document:', error);
       showError(error.message || 'Failed to download document');
     }
   };
 
   const handleDocumentLabels = (document) => {
-    console.log('🏷️ Page: handleDocumentLabels called', document);
     setSelectedDocument(document);
     setShowDocumentLabels(true);
   };
 
   const handleDocumentDetails = (document) => {
-    console.log('ℹ️ Page: handleDocumentDetails called', document);
     setSelectedDocument(document);
     setShowDocumentDetails(true);
   };

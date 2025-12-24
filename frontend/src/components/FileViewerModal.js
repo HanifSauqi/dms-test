@@ -12,29 +12,24 @@ const PDFViewer = ({ document, onError }) => {
   const abortControllerRef = useRef(null);
 
   useEffect(() => {
-    console.log('📄 PDFViewer useEffect running for document:', document.id);
     // Create new abort controller for this effect
     abortControllerRef.current = new AbortController();
 
     const loadPDF = async () => {
       try {
         setLoading(true);
-        console.log('📄 PDFViewer: Making API call to /documents/' + document.id + '/view');
 
         const response = await api.get(`/documents/${document.id}/view`, {
           responseType: 'blob',
           signal: abortControllerRef.current.signal
         });
 
-        console.log('📄 PDFViewer: Response received:', response);
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         setPdfUrl(url);
-        console.log('📄 PDFViewer: PDF loaded successfully');
       } catch (error) {
         // Ignore abort errors
         if (error.name === 'CanceledError' || error.message?.includes('aborted')) {
-          console.log('📄 PDFViewer: Request aborted');
           return;
         }
         console.error('❌ PDFViewer: Error loading PDF:', error);
@@ -91,29 +86,24 @@ const ImageViewer = ({ document, onError }) => {
   const abortControllerRef = useRef(null);
 
   useEffect(() => {
-    console.log('🖼️ ImageViewer useEffect running for document:', document.id);
     // Create new abort controller for this effect
     abortControllerRef.current = new AbortController();
 
     const loadImage = async () => {
       try {
         setLoading(true);
-        console.log('🖼️ ImageViewer: Making API call to /documents/' + document.id + '/view');
 
         const response = await api.get(`/documents/${document.id}/view`, {
           responseType: 'blob',
           signal: abortControllerRef.current.signal
         });
 
-        console.log('🖼️ ImageViewer: Response received:', response);
         const blob = new Blob([response.data]);
         const url = window.URL.createObjectURL(blob);
         setImageUrl(url);
-        console.log('🖼️ ImageViewer: Image loaded successfully');
       } catch (error) {
         // Ignore abort errors
         if (error.name === 'CanceledError' || error.message?.includes('aborted')) {
-          console.log('🖼️ ImageViewer: Request aborted');
           return;
         }
         console.error('❌ ImageViewer: Error loading image:', error);
@@ -171,7 +161,6 @@ export default function FileViewerModal({ document, isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  console.log('🔵 FileViewerModal rendered:', { isOpen, document });
 
   // Log view activity when modal opens
   useEffect(() => {
@@ -179,13 +168,11 @@ export default function FileViewerModal({ document, isOpen, onClose }) {
 
     const logViewActivity = async () => {
       try {
-        console.log('📊 FileViewerModal: Logging view activity for document:', document.id);
         // Call the view endpoint to log activity
         // This doesn't need to return anything, just trigger the logging
         await api.get(`/documents/${document.id}/view`, {
           responseType: 'blob'
         });
-        console.log('✅ FileViewerModal: View activity logged successfully');
       } catch (error) {
         console.error('❌ FileViewerModal: Error logging view activity:', error);
         // Don't show error to user, this is just for logging
@@ -196,7 +183,6 @@ export default function FileViewerModal({ document, isOpen, onClose }) {
   }, [document?.id, isOpen, api]);
 
   if (!isOpen || !document) {
-    console.log('🔵 FileViewerModal: Not rendering (isOpen:', isOpen, ', document:', document, ')');
     return null;
   }
 
@@ -268,15 +254,12 @@ export default function FileViewerModal({ document, isOpen, onClose }) {
 
   const renderFilePreview = () => {
     const fileType = getFileType(document.fileName || document.title);
-    console.log('🔍 FileViewerModal: File type detected:', fileType, 'for file:', document.fileName || document.title);
 
     switch (fileType) {
       case 'pdf':
-        console.log('📄 FileViewerModal: Rendering PDFViewer');
         return <PDFViewer document={document} onError={setError} />;
 
       case 'image':
-        console.log('🖼️ FileViewerModal: Rendering ImageViewer');
         return <ImageViewer document={document} onError={setError} />;
 
       case 'text':

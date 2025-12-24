@@ -42,7 +42,7 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-          triggerRef.current && !triggerRef.current.contains(event.target)) {
+        triggerRef.current && !triggerRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -82,15 +82,12 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
   }, [isOpen]);
 
   const handleOptionClick = (option) => {
-    console.log('🎯 DropdownMenu: Option clicked:', option.label);
     setIsOpen(false);
 
     // Support both direct onClick from item and parent onOptionClick callback
     if (option.onClick) {
-      console.log('🎯 DropdownMenu: Calling option.onClick callback');
       option.onClick();
     } else if (onOptionClick) {
-      console.log('🎯 DropdownMenu: Calling onOptionClick callback');
       onOptionClick(option);
     } else {
       console.error('❌ DropdownMenu: No onClick callback defined!');
@@ -137,13 +134,12 @@ export default function DropdownMenu({ options, items, trigger, onOptionClick })
                 key={index}
                 onClick={() => handleOptionClick(option)}
                 disabled={option.disabled}
-                className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center space-x-2 ${
-                  option.disabled
+                className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center space-x-2 ${option.disabled
                     ? 'text-gray-400 cursor-not-allowed'
                     : option.className
                       ? option.className
                       : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 {IconComponent && (
                   <IconComponent className="w-4 h-4 flex-shrink-0" />

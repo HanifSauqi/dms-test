@@ -86,7 +86,6 @@ export default function ResumePage() {
           const response = await api.get(`/documents/rag-search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`);
           if (response.data.success) {
             results = response.data.data.results || [];
-            console.log(`✅ RAG Search found ${results.length} matching documents`);
           }
         } catch (ragError) {
           console.warn('⚠️ RAG search failed, falling back to keyword search:', ragError.message);
@@ -95,7 +94,6 @@ export default function ResumePage() {
             const fallbackResponse = await api.get(`/documents/search?q=${encodeURIComponent(searchQuery.trim())}`);
             if (fallbackResponse.data.success) {
               results = fallbackResponse.data.data.documents || [];
-              console.log(`✅ Simple Search found ${results.length} matching documents`);
             }
           } catch (fallbackError) {
             console.error('❌ Fallback search also failed:', fallbackError);

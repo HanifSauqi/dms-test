@@ -115,78 +115,42 @@ export default function DocumentList({
   };
 
   const handleDocumentAction = async (action, document) => {
-    console.log('🔵 handleDocumentAction called:', { action, document });
-
     if (!document || !document.id) {
-      console.error('❌ Invalid document:', document);
       showError('Invalid document');
       return;
     }
 
     try {
       setActionLoading(`${action}-${document.id}`);
-      console.log(`🔄 Action loading set for: ${action}-${document.id}`);
 
       switch (action) {
         case 'view':
-          console.log('👁️ Calling onDocumentView');
-          if (onDocumentView) {
-            onDocumentView(document);
-          } else {
-            console.error('❌ onDocumentView is not defined');
-          }
+          onDocumentView && onDocumentView(document);
           break;
         case 'edit':
-          console.log('✏️ Calling onDocumentEdit');
-          if (onDocumentEdit) {
-            onDocumentEdit(document);
-          } else {
-            console.error('❌ onDocumentEdit is not defined');
-          }
+          onDocumentEdit && onDocumentEdit(document);
           break;
         case 'delete':
-          console.log('🗑️ Calling onDocumentDelete');
-          if (onDocumentDelete) {
-            await onDocumentDelete(document);
-          } else {
-            console.error('❌ onDocumentDelete is not defined');
-          }
+          onDocumentDelete && await onDocumentDelete(document);
           break;
         case 'download':
-          console.log('⬇️ Calling onDocumentDownload');
-          if (onDocumentDownload) {
-            await onDocumentDownload(document);
-          } else {
-            console.error('❌ onDocumentDownload is not defined');
-          }
+          onDocumentDownload && await onDocumentDownload(document);
           break;
         case 'labels':
-          console.log('🏷️ Calling onDocumentLabels');
-          if (onDocumentLabels) {
-            onDocumentLabels(document);
-          } else {
-            console.error('❌ onDocumentLabels is not defined');
-          }
+          onDocumentLabels && onDocumentLabels(document);
           break;
         case 'details':
-          console.log('ℹ️ Calling onDocumentDetails');
-          if (onDocumentDetails) {
-            onDocumentDetails(document);
-          } else {
-            console.error('❌ onDocumentDetails is not defined');
-          }
+          onDocumentDetails && onDocumentDetails(document);
           break;
         default:
-          console.warn(`⚠️ Unknown action: ${action}`);
+          console.warn(`Unknown action: ${action}`);
           break;
       }
-      console.log(`✅ Action ${action} completed successfully`);
     } catch (error) {
-      console.error(`❌ Error performing ${action} on document:`, error);
+      console.error(`Error performing ${action} on document:`, error);
       showError(`Failed to ${action} document: ${error.message}`);
     } finally {
       setActionLoading(null);
-      console.log('🔄 Action loading cleared');
     }
   };
 
@@ -290,13 +254,7 @@ export default function DocumentList({
                           }] : [])
                         ]}
                         onOptionClick={(option) => {
-                          console.log('📁 FolderList: onOptionClick received:', option.label);
-                          if (option.onClick) {
-                            console.log('📁 FolderList: Calling option.onClick()');
-                            option.onClick();
-                          } else {
-                            console.error('❌ FolderList: option.onClick is not defined!');
-                          }
+                          option.onClick && option.onClick();
                         }}
                       />
                     </div>
@@ -388,13 +346,7 @@ export default function DocumentList({
                                 }] : [])
                               ]}
                               onOptionClick={(option) => {
-                                console.log('📁 FolderList: onOptionClick received:', option.label);
-                                if (option.onClick) {
-                                  console.log('📁 FolderList: Calling option.onClick()');
-                                  option.onClick();
-                                } else {
-                                  console.error('❌ FolderList: option.onClick is not defined!');
-                                }
+                                option.onClick && option.onClick();
                               }}
                             />
                           </div>
@@ -581,13 +533,7 @@ export default function DocumentList({
                           }] : [])
                         ]}
                         onOptionClick={(option) => {
-                          console.log('📄 DocumentList: onOptionClick received:', option.label);
-                          if (option.onClick) {
-                            console.log('📄 DocumentList: Calling option.onClick()');
-                            option.onClick();
-                          } else {
-                            console.error('❌ DocumentList: option.onClick is not defined!');
-                          }
+                          option.onClick && option.onClick();
                         }}
                       />
                     </div>
@@ -729,13 +675,7 @@ export default function DocumentList({
                                 }] : [])
                               ]}
                               onOptionClick={(option) => {
-                                console.log('📄 DocumentList: onOptionClick received:', option.label);
-                                if (option.onClick) {
-                                  console.log('📄 DocumentList: Calling option.onClick()');
-                                  option.onClick();
-                                } else {
-                                  console.error('❌ DocumentList: option.onClick is not defined!');
-                                }
+                                option.onClick && option.onClick();
                               }}
                             />
                           </div>

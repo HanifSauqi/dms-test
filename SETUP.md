@@ -2,6 +2,31 @@
 
 Panduan lengkap untuk setup project DMS setelah clone dari GitHub.
 
+## 🎯 Quick Start (Automated Setup) ⭐
+
+**Cara tercepat untuk setup (RECOMMENDED):**
+
+```bash
+# Windows
+setup-fresh-install.bat
+
+# Ikuti instruksi di layar
+```
+
+Script otomatis ini akan:
+- ✅ Bersihkan build cache & old dependencies (mencegah error Turbopack!)
+- ✅ Install semua dependencies (backend + frontend)
+- ✅ Setup environment files (.env)
+- ✅ Panduan setup database step-by-step
+
+**Setelah script selesai:**
+1. Edit `backend/.env` (set DB_PASSWORD dan GEMINI_API_KEY)
+2. Run database setup: `cd database && setup-postgresql.bat`
+3. Create superadmin: `cd backend && npm run create-superadmin`
+4. Start aplikasi (baca instruksi di bawah)
+
+---
+
 ## 📋 Prerequisites
 
 Pastikan sudah terinstall:
