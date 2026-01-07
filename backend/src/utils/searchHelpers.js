@@ -33,7 +33,7 @@ Output: ["invoice", "bulan"]
 Now extract from the query above:`;
 
     const response = await geminiService.ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: geminiService.config.defaultModels.search,
       contents: prompt
     });
 

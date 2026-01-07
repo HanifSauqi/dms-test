@@ -9,16 +9,16 @@ module.exports = {
 
   // Model Configuration
   models: {
-    flash: 'gemini-2.0-flash-exp',      // Fast, cost-effective
-    flashThinking: 'gemini-2.5-flash',  // Balanced reasoning
-    pro: 'gemini-2.5-pro-latest'        // Most capable
+    flash: 'gemini-2.5-flash-lite',          // Fast, cost-effective, high quota
+    flashThinking: 'gemini-2.5-flash-lite',  // Balanced reasoning
+    pro: 'gemini-2.5-pro-preview-05-06'      // Most capable (for complex tasks)
   },
 
   // Default model for different tasks
   defaultModels: {
-    extraction: 'gemini-2.5-flash',     // Metadata extraction
-    search: 'gemini-2.0-flash-exp',     // RAG search
-    classification: 'gemini-2.5-flash'  // Document classification
+    extraction: 'gemini-2.5-flash-lite',     // Metadata extraction
+    search: 'gemini-2.5-flash-lite',         // RAG search
+    classification: 'gemini-2.5-flash-lite'  // Document classification
   },
 
   // Request settings

@@ -12,13 +12,6 @@ module.exports = {
     READ: 'read',
     WRITE: 'write',
     ADMIN: 'admin'
-  },
-  VALID_FILE_TYPES: [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    'text/csv',
-    'application/json'
-  ]
+  }
+  // Note: File type validation is handled by config/upload.config.js
 };

@@ -142,58 +142,81 @@ class ReportService extends BaseService {
 
         const keywordParams = keywords.map(kw => `%${kw}%`);
 
-        // Get date grouping based on time_range
-        let dateGrouping, dateFormat, limit;
+        // Get date grouping and series generation based on time_range
+        let dateGrouping, dateFormat, seriesStart, seriesEnd, seriesInterval;
         switch (report.time_range) {
             case 'daily':
                 dateGrouping = "DATE_TRUNC('day', created_at)";
                 dateFormat = 'YYYY-MM-DD';
-                limit = 7;
+                seriesStart = "CURRENT_DATE - INTERVAL '6 days'";
+                seriesEnd = "CURRENT_DATE";
+                seriesInterval = "'1 day'::interval";
                 break;
             case 'weekly':
                 dateGrouping = "DATE_TRUNC('week', created_at)";
                 dateFormat = 'YYYY-"W"IW';
-                limit = 7;
+                seriesStart = "DATE_TRUNC('week', CURRENT_DATE) - INTERVAL '6 weeks'";
+                seriesEnd = "DATE_TRUNC('week', CURRENT_DATE)";
+                seriesInterval = "'1 week'::interval";
                 break;
             case 'yearly':
                 dateGrouping = "DATE_TRUNC('year', created_at)";
                 dateFormat = 'YYYY';
-                limit = 10;
+                seriesStart = "DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '9 years'";
+                seriesEnd = "DATE_TRUNC('year', CURRENT_DATE)";
+                seriesInterval = "'1 year'::interval";
                 break;
             case 'monthly':
             default:
                 dateGrouping = "DATE_TRUNC('month', created_at)";
                 dateFormat = 'YYYY-MM';
-                limit = 12;
+                seriesStart = "DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'";
+                seriesEnd = "DATE_TRUNC('month', CURRENT_DATE)";
+                seriesInterval = "'1 month'::interval";
                 break;
         }
 
+        // Generate all periods in the range and LEFT JOIN with actual document counts
         const statsQuery = `
+      WITH periods AS (
+        SELECT generate_series(
+          ${seriesStart},
+          ${seriesEnd},
+          ${seriesInterval}
+        )::date as period
+      ),
+      doc_counts AS (
+        SELECT 
+          ${dateGrouping}::date as period,
+          COUNT(*) as count
+        FROM documents
+        WHERE owner_id = $1 AND ${keywordConditions}
+        GROUP BY ${dateGrouping}
+      )
       SELECT 
-        ${dateGrouping} as period,
-        TO_CHAR(${dateGrouping}, '${dateFormat}') as period_label,
-        COUNT(*) as count
-      FROM documents
-      WHERE owner_id = $1 AND ${keywordConditions}
-      GROUP BY ${dateGrouping}
-      ORDER BY period DESC
-      LIMIT ${limit}
+        p.period,
+        TO_CHAR(p.period, '${dateFormat}') as period_label,
+        COALESCE(d.count, 0) as count
+      FROM periods p
+      LEFT JOIN doc_counts d ON p.period = d.period
+      ORDER BY p.period ASC
     `;
 
         const statsResult = await pool.query(statsQuery, [userId, ...keywordParams]);
 
-        // Get total count
+        // Get total count (within the time range)
         const totalQuery = `
       SELECT COUNT(*) as total
       FROM documents
-      WHERE owner_id = $1 AND ${keywordConditions}
+      WHERE owner_id = $1 AND ${keywordConditions} 
+        AND created_at >= ${seriesStart} AND created_at < ${seriesEnd} + ${seriesInterval}
     `;
 
         const totalResult = await pool.query(totalQuery, [userId, ...keywordParams]);
 
         return {
             report,
-            stats: statsResult.rows.reverse(), // Oldest to newest for charts
+            stats: statsResult.rows,
             total: parseInt(totalResult.rows[0].total)
         };
     }

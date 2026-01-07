@@ -10,21 +10,21 @@ const extractTextContent = async (filePath, fileType) => {
     switch (fileType.toLowerCase()) {
       case 'txt':
         return await fs.readFile(filePath, 'utf8');
-      
+
       case 'json':
         const jsonContent = await fs.readFile(filePath, 'utf8');
         const parsed = JSON.parse(jsonContent);
         return JSON.stringify(parsed, null, 2);
-      
+
       case 'pdf':
         const pdfBuffer = await fs.readFile(filePath);
         const pdfData = await pdfParse(pdfBuffer);
         return pdfData.text || 'No text content found in PDF';
-      
+
       case 'docx':
         const docxResult = await mammoth.extractRawText({ path: filePath });
         return docxResult.value || 'No text content found in DOCX';
-      
+
       case 'xlsx':
       case 'xls':
         const workbook = XLSX.readFile(filePath);
@@ -35,22 +35,22 @@ const extractTextContent = async (filePath, fileType) => {
           xlsxText += XLSX.utils.sheet_to_txt(sheet) + '\n\n';
         });
         return xlsxText || 'No data found in Excel file';
-      
+
       case 'csv':
         const csvContent = await fs.readFile(filePath, 'utf8');
         return csvContent;
-      
+
       // Image files - no text extraction
       case 'png':
       case 'jpg':
       case 'jpeg':
       case 'gif':
         return `Image file: ${fileType.toUpperCase()}. No text content available.`;
-      
+
       // PowerPoint and other formats
       case 'pptx':
         return `PowerPoint file. Content extraction not implemented yet.`;
-      
+
       default:
         return `File type: ${fileType}. Content extraction not supported.`;
     }
@@ -65,12 +65,8 @@ const getFileType = (filename) => {
 };
 
 const validateFileType = (fileType) => {
-  const allowedTypes = [
-    'pdf', 'docx', 'xlsx', 'xls', 'pptx', 
-    'txt', 'csv', 'json',
-    'png', 'jpg', 'jpeg', 'gif'
-  ];
-  return allowedTypes.includes(fileType.toLowerCase());
+  const uploadConfig = require('../config/upload.config');
+  return uploadConfig.allowedTypes.includes(fileType.toLowerCase());
 };
 
 const generateUniqueFilename = (originalName) => {

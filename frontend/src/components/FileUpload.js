@@ -37,17 +37,48 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
   };
 
   const handleFiles = (files) => {
-    const validFiles = files.filter(file => {
-      const validTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain',
-        'text/csv',
-        'application/json'
-      ];
-      return validTypes.includes(file.type) && file.size <= 100 * 1024 * 1024;
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    const validTypes = [
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'text/plain', // .txt
+      'text/csv', // .csv
+      'application/json' // .json
+    ];
+
+    const validExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'json'];
+
+    const validFiles = [];
+    const rejectedFiles = [];
+
+    files.forEach(file => {
+      const extension = file.name.split('.').pop().toLowerCase();
+      const isValidType = validTypes.includes(file.type) || validExtensions.includes(extension);
+      const isValidSize = file.size <= MAX_FILE_SIZE;
+
+      if (!isValidType) {
+        rejectedFiles.push({
+          name: file.name,
+          reason: `Format tidak didukung (.${extension}). Format yang diizinkan: PDF, DOC, DOCX, XLS, XLSX, TXT, CSV, JSON`
+        });
+      } else if (!isValidSize) {
+        rejectedFiles.push({
+          name: file.name,
+          reason: `Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(2)} MB). Maksimal 100 MB`
+        });
+      } else {
+        validFiles.push(file);
+      }
     });
+
+    // Show error message for rejected files
+    if (rejectedFiles.length > 0) {
+      const errorMessages = rejectedFiles.map(f => `• ${f.name}: ${f.reason}`).join('\n');
+      alert(`File berikut tidak dapat diupload:\n\n${errorMessages}`);
+    }
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
   };
@@ -131,17 +162,16 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-            isDragActive
-              ? 'border-orange-400 bg-orange-50'
-              : 'border-gray-300 hover:border-orange-400'
-          }`}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
+            ? 'border-orange-400 bg-orange-50'
+            : 'border-gray-300 hover:border-orange-400'
+            }`}
         >
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.docx,.xlsx,.txt,.csv,.json"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.json"
             onChange={handleFileInput}
             className="hidden"
           />
@@ -153,7 +183,7 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
             }
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Supported: PDF, DOCX, XLSX, TXT, CSV, JSON (max 100MB each)
+            Supported: PDF, DOC, DOCX, XLS, XLSX, TXT, CSV, JSON (max 100MB each)
           </p>
         </div>
 
