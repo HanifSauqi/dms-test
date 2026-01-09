@@ -3,6 +3,7 @@ const path = require('path');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
+const WordExtractor = require('word-extractor');
 
 // Enhanced text extraction for different file types
 const extractTextContent = async (filePath, fileType) => {
@@ -24,6 +25,11 @@ const extractTextContent = async (filePath, fileType) => {
       case 'docx':
         const docxResult = await mammoth.extractRawText({ path: filePath });
         return docxResult.value || 'No text content found in DOCX';
+
+      case 'doc':
+        const extractor = new WordExtractor();
+        const docExtracted = await extractor.extract(filePath);
+        return docExtracted.getBody() || 'No text content found in DOC';
 
       case 'xlsx':
       case 'xls':
@@ -81,7 +87,7 @@ const getFileInfo = (filePath, originalName, fileSize) => {
     type: fileType,
     size: fileSize,
     sizeFormatted: formatFileSize(fileSize),
-    canExtractText: ['txt', 'json', 'pdf', 'docx', 'xlsx', 'xls', 'csv'].includes(fileType)
+    canExtractText: ['txt', 'json', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv'].includes(fileType)
   };
   return stats;
 };

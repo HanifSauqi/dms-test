@@ -1,10 +1,32 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
-import ClassificationSettings from '@/components/ClassificationSettings'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRightIcon } from '@heroicons/react/24/outline'
+import { ChevronRightIcon, CpuChipIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+
+// Settings menu items - add more items here for future settings
+const settingsMenuItems = [
+  {
+    id: 'auto-classification',
+    title: 'Auto Classification',
+    description: 'Configure automatic document classification rules based on keywords',
+    icon: CpuChipIcon,
+    href: '/dashboard/settings/auto-classification',
+    iconBgColor: 'bg-gradient-to-br from-orange-400 to-orange-600',
+    hoverColor: 'hover:border-orange-300 hover:shadow-orange-100',
+  },
+  // Add more settings items here in the future
+  // {
+  //   id: 'general',
+  //   title: 'General Settings',
+  //   description: 'Configure general application settings',
+  //   icon: Cog6ToothIcon,
+  //   href: '/dashboard/settings/general',
+  //   iconBgColor: 'bg-gradient-to-br from-blue-400 to-blue-600',
+  //   hoverColor: 'hover:border-blue-300 hover:shadow-blue-100',
+  // },
+]
 
 export default function SettingsPage() {
   const { user, loading } = useAuth()
@@ -53,15 +75,47 @@ export default function SettingsPage() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-8">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
         <p className="mt-1 text-sm text-gray-500">
           Configure your document management preferences
         </p>
       </div>
 
-      {/* Classification Settings */}
-      <ClassificationSettings />
+      {/* Settings Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {settingsMenuItems.map((item) => {
+          const IconComponent = item.icon
+          return (
+            <button
+              key={item.id}
+              onClick={() => router.push(item.href)}
+              className={`group relative bg-white border border-gray-200 rounded-xl p-6 text-left transition-all duration-300 ease-in-out hover:shadow-lg ${item.hoverColor} focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2`}
+            >
+              {/* Icon */}
+              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg ${item.iconBgColor} shadow-lg mb-4 transition-transform duration-300 group-hover:scale-110`}>
+                <IconComponent className="w-6 h-6 text-white" />
+              </div>
+
+              {/* Content */}
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
+                {item.title}
+              </h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                {item.description}
+              </p>
+
+              {/* Arrow indicator */}
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <ChevronRightIcon className="w-5 h-5 text-orange-500" />
+              </div>
+
+              {/* Hover gradient overlay */}
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
+            </button>
+          )
+        })}
+      </div>
     </>
   )
 }

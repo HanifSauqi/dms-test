@@ -10,8 +10,8 @@ const getClassificationRules = async (req, res) => {
       SELECT ucr.*, f.name as folder_name
       FROM user_classification_rules ucr
       JOIN folders f ON ucr.target_folder_id = f.id
-      WHERE ucr.user_id = $1 AND ucr.is_active = true
-      ORDER BY ucr.priority DESC, ucr.created_at ASC
+      WHERE ucr.user_id = $1
+      ORDER BY ucr.is_active DESC, ucr.priority DESC, ucr.created_at ASC
     `, [userId]);
 
     successResponse(res, 'Classification rules retrieved successfully', {
