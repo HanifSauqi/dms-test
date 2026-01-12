@@ -44,16 +44,23 @@ class SearchService extends BaseService {
 
     // Build parameterized query - safe from SQL injection
     const keywordConditions = sanitizedKeywords
-      .map((_, index) => `extracted_content ILIKE $${index + 2}`)
+      .map((_, index) => `d.extracted_content ILIKE $${index + 2}`)
       .join(' OR ');
 
     const keywordParams = sanitizedKeywords.map(kw => `%${kw}%`);
 
     const result = await pool.query(
-      `SELECT id, title, file_name, extracted_content, created_at, updated_at
-       FROM documents
-       WHERE owner_id = $1 AND (${keywordConditions})
-       ORDER BY updated_at DESC
+      `SELECT d.id, d.title, d.file_name, d.file_path, d.extracted_content, d.created_at, d.updated_at,
+        d.folder_id, d.owner_id,
+        f.name as folder_name,
+        array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
+       FROM documents d
+       LEFT JOIN folders f ON d.folder_id = f.id
+       LEFT JOIN document_labels dl ON d.id = dl.document_id
+       LEFT JOIN labels l ON dl.label_id = l.id
+       WHERE d.owner_id = $1 AND (${keywordConditions})
+       GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content, d.created_at, d.updated_at, d.folder_id, d.owner_id, f.name
+       ORDER BY d.updated_at DESC
        LIMIT $${sanitizedKeywords.length + 2}`,
       [userId, ...keywordParams, Math.min(limit * 2, 100)]
     );
@@ -66,11 +73,18 @@ class SearchService extends BaseService {
 
   async getAllUserDocuments(userId) {
     const result = await pool.query(
-      `SELECT id, title, file_name, extracted_content, created_at, updated_at
-       FROM documents
-       WHERE owner_id = $1
-       ORDER BY updated_at DESC
-       LIMIT 100`, // Prevent fetching too many documents
+      `SELECT d.id, d.title, d.file_name, d.file_path, d.extracted_content, d.created_at, d.updated_at,
+        d.folder_id, d.owner_id,
+        f.name as folder_name,
+        array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
+       FROM documents d
+       LEFT JOIN folders f ON d.folder_id = f.id
+       LEFT JOIN document_labels dl ON d.id = dl.document_id
+       LEFT JOIN labels l ON dl.label_id = l.id
+       WHERE d.owner_id = $1
+       GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content, d.created_at, d.updated_at, d.folder_id, d.owner_id, f.name
+       ORDER BY d.updated_at DESC
+       LIMIT 100`,
       [userId]
     );
 

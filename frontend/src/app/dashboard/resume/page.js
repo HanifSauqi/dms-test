@@ -139,6 +139,9 @@ export default function ResumePage() {
             console.error('❌ Fallback search also failed:', fallbackError);
           }
         }
+      } else {
+        // No search query - use all documents as base for filtering
+        results = [...documents];
       }
 
       // Then apply filters to the results
@@ -564,11 +567,10 @@ export default function ResumePage() {
                         </p>
                         {/* Similarity Badge - only show if semantic search was used */}
                         {document.similarity !== undefined && (
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            document.similarity >= 70 ? 'bg-green-100 text-green-700' :
-                            document.similarity >= 40 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${document.similarity >= 70 ? 'bg-green-100 text-green-700' :
+                              document.similarity >= 40 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-gray-100 text-gray-600'
+                            }`}>
                             {document.similarity}% match
                           </span>
                         )}

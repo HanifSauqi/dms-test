@@ -294,8 +294,26 @@ const getSharedDocuments = async (req, res) => {
 
     const result = await documentService.getSharedDocuments(userId, options);
 
+    // Transform to camelCase for frontend
+    const transformedDocuments = result.documents.map(doc => ({
+      id: doc.id,
+      title: doc.title,
+      fileName: doc.file_name,
+      filePath: doc.file_path,
+      extractedContent: doc.extracted_content,
+      folderId: doc.folder_id,
+      folderName: doc.folder_name,
+      ownerId: doc.owner_id,
+      ownerEmail: doc.owner_email,
+      ownerName: doc.owner_name,
+      permissionLevel: doc.permission_level,
+      labels: doc.labels || [],
+      createdAt: doc.created_at,
+      updatedAt: doc.updated_at
+    }));
+
     successResponse(res, 'Shared documents retrieved successfully', {
-      documents: result.documents,
+      documents: transformedDocuments,
       pagination: result.pagination
     });
   } catch (error) {
@@ -466,20 +484,20 @@ module.exports = {
   getRecentDocuments,
   getDocumentActivity,
   getDocumentSharedUsers: async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
 
-    const sharedUsers = await documentService.getDocumentSharedUsers(id, userId);
+      const sharedUsers = await documentService.getDocumentSharedUsers(id, userId);
 
-    successResponse(res, 'Document shared users retrieved successfully', {
-      sharedUsers
-    });
-  } catch (error) {
-    if (error.message.includes('not found') || error.message.includes('access denied')) {
-      return errorResponse(res, error.message, 404);
+      successResponse(res, 'Document shared users retrieved successfully', {
+        sharedUsers
+      });
+    } catch (error) {
+      if (error.message.includes('not found') || error.message.includes('access denied')) {
+        return errorResponse(res, error.message, 404);
+      }
+      errorResponse(res, 'Failed to retrieve document shared users', 500, error.message);
     }
-    errorResponse(res, 'Failed to retrieve document shared users', 500, error.message);
   }
-}
 };

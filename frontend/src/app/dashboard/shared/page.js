@@ -32,21 +32,21 @@ import { useRouter } from 'next/navigation';
 export default function SharedPage() {
   const { api } = useAuth();
   const router = useRouter();
-  
+
   // State management
   const [sharedFolders, setSharedFolders] = useState([]);
   const [sharedDocuments, setSharedDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('folders');
-  
+
   // Modal states
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [showDocumentDetails, setShowDocumentDetails] = useState(false);
   const [showDocumentEdit, setShowDocumentEdit] = useState(false);
   const [showDocumentLabels, setShowDocumentLabels] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
-  
+
   // Stats
   const [stats, setStats] = useState({
     totalFolders: 0,
@@ -59,7 +59,7 @@ export default function SharedPage() {
   const fetchSharedFolders = useCallback(async () => {
     try {
       const response = await api.get('/folders/shared');
-      
+
       if (response.data.success) {
         return response.data.data.sharedFolders || [];
       }
@@ -74,7 +74,7 @@ export default function SharedPage() {
   const fetchSharedDocuments = useCallback(async () => {
     try {
       const response = await api.get('/documents/shared');
-      
+
       if (response.data.success) {
         return response.data.data.documents || [];
       }
@@ -89,30 +89,27 @@ export default function SharedPage() {
   const loadSharedContent = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const [folders, documents] = await Promise.all([
         fetchSharedFolders(),
         fetchSharedDocuments()
       ]);
-      
+
       setSharedFolders(folders);
       setSharedDocuments(documents);
-      
-      // Calculate stats
-      const totalItems = folders.length + documents.length;
-      const readOnlyItems = [...folders, ...documents].filter(item =>
-        item.permissionLevel === 'viewer'
-      ).length;
-      const editableItems = totalItems - readOnlyItems;
-      
+
+      // Calculate stats - only count folders for access permissions
+      const viewerFolders = folders.filter(folder => folder.permissionLevel === 'viewer').length;
+      const editorFolders = folders.filter(folder => folder.permissionLevel === 'editor').length;
+
       setStats({
         totalFolders: folders.length,
         totalDocuments: documents.length,
-        readOnlyItems,
-        editableItems
+        readOnlyItems: viewerFolders,
+        editableItems: editorFolders
       });
-      
+
     } catch (error) {
       console.error('Error loading shared content:', error);
       setError('Failed to load shared content. Please try again.');
@@ -154,7 +151,7 @@ export default function SharedPage() {
   const getFileIcon = (fileName) => {
     const extension = fileName?.split('.').pop()?.toLowerCase();
     const baseClasses = "h-6 w-6 flex-shrink-0";
-    
+
     switch (extension) {
       case 'pdf':
         return <DocumentIcon className={`${baseClasses} text-red-500`} />;
@@ -470,21 +467,19 @@ export default function SharedPage() {
           <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('folders')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'folders'
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'folders'
                   ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               Folders ({stats.totalFolders})
             </button>
             <button
               onClick={() => setActiveTab('documents')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'documents'
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'documents'
                   ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               File ({stats.totalDocuments})
             </button>

@@ -29,7 +29,17 @@ class ReportService extends BaseService {
             [name, description || '', keywords || [], timeRange || 'monthly', userId]
         );
 
-        return result.rows[0];
+        const report = result.rows[0];
+        return {
+            id: report.id,
+            name: report.name,
+            description: report.description,
+            keywords: report.keywords,
+            timeRange: report.time_range,
+            userId: report.user_id,
+            createdAt: report.created_at,
+            updatedAt: report.updated_at
+        };
     }
 
     /**
@@ -43,7 +53,16 @@ class ReportService extends BaseService {
             [userId]
         );
 
-        return result.rows;
+        return result.rows.map(report => ({
+            id: report.id,
+            name: report.name,
+            description: report.description,
+            keywords: report.keywords,
+            timeRange: report.time_range,
+            userId: report.user_id,
+            createdAt: report.created_at,
+            updatedAt: report.updated_at
+        }));
     }
 
     /**
@@ -55,7 +74,19 @@ class ReportService extends BaseService {
             [reportId, userId]
         );
 
-        return result.rows[0] || null;
+        if (!result.rows[0]) return null;
+
+        const report = result.rows[0];
+        return {
+            id: report.id,
+            name: report.name,
+            description: report.description,
+            keywords: report.keywords,
+            timeRange: report.time_range,
+            userId: report.user_id,
+            createdAt: report.created_at,
+            updatedAt: report.updated_at
+        };
     }
 
     /**
@@ -94,7 +125,17 @@ class ReportService extends BaseService {
             [name, description, keywords, timeRange, reportId, userId]
         );
 
-        return result.rows[0];
+        const updatedReport = result.rows[0];
+        return {
+            id: updatedReport.id,
+            name: updatedReport.name,
+            description: updatedReport.description,
+            keywords: updatedReport.keywords,
+            timeRange: updatedReport.time_range,
+            userId: updatedReport.user_id,
+            createdAt: updatedReport.created_at,
+            updatedAt: updatedReport.updated_at
+        };
     }
 
     /**

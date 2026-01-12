@@ -380,6 +380,8 @@ class DocumentService extends BaseService {
     const offset = (page - 1) * limit;
 
     // Query untuk mendapatkan documents dari shared folders
+    // Show ALL documents from folders shared TO this user (folders not owned by user)
+    // This includes documents uploaded by the user into shared folders
     const query = `
       SELECT DISTINCT d.id, d.title, d.file_name, d.file_path, d.extracted_content,
         d.folder_id, d.owner_id, d.created_at, d.updated_at,
@@ -395,7 +397,7 @@ class DocumentService extends BaseService {
       LEFT JOIN document_labels dl ON d.id = dl.document_id
       LEFT JOIN labels l ON dl.label_id = l.id
       WHERE fp.user_id = $1
-        AND d.owner_id != $1
+        AND f.owner_id != $1
         AND fp.permission_level IN ('viewer', 'editor', 'owner')
       GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content,
         d.folder_id, d.owner_id, d.created_at, d.updated_at,
@@ -406,13 +408,14 @@ class DocumentService extends BaseService {
 
     const result = await pool.query(query, [userId, limit, offset]);
 
-    // Count total shared documents
+    // Count total shared documents - all docs from folders not owned by user
     const countQuery = `
       SELECT COUNT(DISTINCT d.id) as total
       FROM documents d
       JOIN folder_permissions fp ON d.folder_id = fp.folder_id
+      JOIN folders f ON d.folder_id = f.id
       WHERE fp.user_id = $1
-        AND d.owner_id != $1
+        AND f.owner_id != $1
         AND fp.permission_level IN ('viewer', 'editor', 'owner')
     `;
 

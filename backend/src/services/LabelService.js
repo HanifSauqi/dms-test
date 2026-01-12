@@ -51,8 +51,12 @@ class LabelService extends BaseService {
     );
 
     return result.rows.map(label => ({
-      ...label,
-      documentCount: parseInt(label.document_count)
+      id: label.id,
+      name: label.name,
+      color: label.color,
+      userId: label.user_id,
+      documentCount: parseInt(label.document_count),
+      createdAt: label.created_at
     }));
   }
 
