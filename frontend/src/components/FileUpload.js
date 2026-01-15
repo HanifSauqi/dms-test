@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloudArrowUpIcon, XMarkIcon, DocumentIcon } from '@heroicons/react/24/outline';
+import { showError } from '@/utils/toast';
 
 export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
   const { api } = useAuth();
@@ -44,12 +45,13 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
       'application/vnd.ms-excel', // .xls
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
       'text/plain', // .txt
-      'text/csv', // .csv
-      'application/json' // .json
+      'text/csv' // .csv
     ];
 
-    const validExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'json'];
+    const validExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'];
 
     const validFiles = [];
     const rejectedFiles = [];
@@ -62,7 +64,7 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
       if (!isValidType) {
         rejectedFiles.push({
           name: file.name,
-          reason: `Format tidak didukung (.${extension}). Format yang diizinkan: PDF, DOC, DOCX, XLS, XLSX, TXT, CSV, JSON`
+          reason: `Format tidak didukung (.${extension}). Format yang diizinkan: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV`
         });
       } else if (!isValidSize) {
         rejectedFiles.push({
@@ -76,8 +78,8 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
 
     // Show error message for rejected files
     if (rejectedFiles.length > 0) {
-      const errorMessages = rejectedFiles.map(f => `• ${f.name}: ${f.reason}`).join('\n');
-      alert(`File berikut tidak dapat diupload:\n\n${errorMessages}`);
+      const errorMessages = rejectedFiles.map(f => `${f.name}: ${f.reason}`).join(', ');
+      showError(`File tidak dapat diupload: ${errorMessages}`);
     }
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
@@ -128,7 +130,7 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Upload failed: ' + (error.response?.data?.message || 'Unknown error'));
+      showError('Upload failed: ' + (error.response?.data?.message || 'Unknown error'));
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -171,7 +173,7 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.json"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
             onChange={handleFileInput}
             className="hidden"
           />
@@ -183,7 +185,7 @@ export default function FileUpload({ folderId, onUploadSuccess, onClose }) {
             }
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Supported: PDF, DOC, DOCX, XLS, XLSX, TXT, CSV, JSON (max 100MB each)
+            Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV (max 100MB each)
           </p>
         </div>
 

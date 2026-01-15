@@ -250,14 +250,6 @@ export default function ReportDetailPage() {
             <option value="bar">Bar Chart</option>
           </select>
         </div>
-        <button
-          onClick={handleExportCSV}
-          disabled={chartData.length === 0}
-          className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-          Export CSV
-        </button>
       </div>
 
       {/* Chart */}

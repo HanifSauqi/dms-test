@@ -11,21 +11,41 @@ class SearchService extends BaseService {
   async ragSearch(query, userId, options = {}) {
     const { limit = 50 } = options;
 
-    const keywords = await extractKeywords(query);
+    console.log('\n========== SEARCH REQUEST ==========');
+    console.log('🔍 Query:', query);
+    console.log('👤 User ID:', userId);
 
-    let documents = await this.getKeywordMatchedDocuments(userId, keywords, limit);
+    // Get ALL user documents first (no keyword pre-filtering)
+    let documents = await this.getAllUserDocuments(userId);
+    console.log('📄 Total documents available:', documents.length);
 
     if (documents.length === 0) {
-      documents = await this.getAllUserDocuments(userId);
-    }
-
-    if (documents.length === 0) {
+      console.log('❌ No documents found for user');
+      console.log('=====================================\n');
       return [];
     }
 
-    const results = await this.analyzeWithGemini(query, documents, limit);
+    // Try Gemini AI first
+    if (geminiService.isEnabled()) {
+      try {
+        const results = await this.analyzeWithGemini(query, documents, limit);
+        return results;
+      } catch (error) {
+        // Gemini failed, fall through to keyword search
+        console.log('\n⚠️  Gemini AI failed, using keyword fallback...');
+      }
+    }
 
-    return results;
+    // Fallback: Use keyword search
+    console.log('\n⚠️  SEARCH METHOD: KEYWORD SEARCH (Fallback)');
+    const keywords = await extractKeywords(query);
+    console.log('📝 Extracted Keywords:', keywords);
+
+    const keywordResults = await this.getKeywordMatchedDocuments(userId, keywords, limit);
+    console.log('📄 Returning', keywordResults.length, 'keyword-matched documents');
+    console.log('=====================================\n');
+
+    return keywordResults.length > 0 ? keywordResults : documents.slice(0, limit);
   }
 
   async getKeywordMatchedDocuments(userId, keywords, limit) {
@@ -56,9 +76,10 @@ class SearchService extends BaseService {
         array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
        FROM documents d
        LEFT JOIN folders f ON d.folder_id = f.id
+       LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id AND fp.user_id = $1
        LEFT JOIN document_labels dl ON d.id = dl.document_id
        LEFT JOIN labels l ON dl.label_id = l.id
-       WHERE d.owner_id = $1 AND (${keywordConditions})
+       WHERE (d.owner_id = $1 OR fp.user_id = $1) AND (${keywordConditions})
        GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content, d.created_at, d.updated_at, d.folder_id, d.owner_id, f.name
        ORDER BY d.updated_at DESC
        LIMIT $${sanitizedKeywords.length + 2}`,
@@ -79,9 +100,10 @@ class SearchService extends BaseService {
         array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
        FROM documents d
        LEFT JOIN folders f ON d.folder_id = f.id
+       LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id AND fp.user_id = $1
        LEFT JOIN document_labels dl ON d.id = dl.document_id
        LEFT JOIN labels l ON dl.label_id = l.id
-       WHERE d.owner_id = $1
+       WHERE d.owner_id = $1 OR fp.user_id = $1
        GROUP BY d.id, d.title, d.file_name, d.file_path, d.extracted_content, d.created_at, d.updated_at, d.folder_id, d.owner_id, f.name
        ORDER BY d.updated_at DESC
        LIMIT 100`,
@@ -93,9 +115,15 @@ class SearchService extends BaseService {
 
   async analyzeWithGemini(query, documents, limit) {
     if (!geminiService.isEnabled()) {
-      console.warn('Gemini service not available. Returning keyword matches only.');
+      console.log('\n⚠️  SEARCH METHOD: KEYWORD SEARCH (Fallback)');
+      console.log('📋 Reason: Gemini API not available or not configured');
+      console.log('📄 Returning', Math.min(documents.length, limit), 'keyword-matched documents');
+      console.log('=====================================\n');
       return documents.slice(0, limit);
     }
+
+    console.log('\n🤖 SEARCH METHOD: GEMINI AI (RAG Search)');
+    console.log('📄 Analyzing', documents.length, 'documents with AI...');
 
     const documentsContext = documents.map((doc, index) => {
       const preview = doc.extracted_content
@@ -139,9 +167,14 @@ Maximum ${limit} results.`;
         .filter(doc => doc !== undefined)
         .slice(0, limit);
 
+      console.log('✅ AI found', results.length, 'relevant documents');
+      console.log('=====================================\n');
       return results;
     } catch (error) {
-      console.error('Gemini analysis error:', error.message);
+      console.log('\n⚠️  SEARCH METHOD: KEYWORD SEARCH (Fallback)');
+      console.log('📋 Reason: Gemini AI error -', error.message);
+      console.log('📄 Returning', Math.min(documents.length, limit), 'keyword-matched documents');
+      console.log('=====================================\n');
       return documents.slice(0, limit);
     }
   }
@@ -159,9 +192,10 @@ Maximum ${limit} results.`;
         array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
       FROM documents d
       LEFT JOIN folders f ON d.folder_id = f.id
+      LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id AND fp.user_id = $1
       LEFT JOIN document_labels dl ON d.id = dl.document_id
       LEFT JOIN labels l ON dl.label_id = l.id
-      WHERE d.owner_id = $1
+      WHERE (d.owner_id = $1 OR fp.user_id = $1)
     `;
 
     const params = [userId];
@@ -206,9 +240,10 @@ Maximum ${limit} results.`;
         array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
        FROM documents d
        LEFT JOIN folders f ON d.folder_id = f.id
+       LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id AND fp.user_id = $1
        LEFT JOIN document_labels dl ON d.id = dl.document_id
        LEFT JOIN labels l ON dl.label_id = l.id
-       WHERE d.owner_id = $1 AND EXISTS(
+       WHERE (d.owner_id = $1 OR fp.user_id = $1) AND EXISTS(
          SELECT 1 FROM document_labels WHERE document_id = d.id AND label_id = ANY($2)
        )
        GROUP BY d.id, d.title, d.file_name, d.file_path, d.created_at, d.updated_at, f.name
@@ -232,9 +267,10 @@ Maximum ${limit} results.`;
       `SELECT d.id, d.title, d.file_name, d.file_path, d.created_at, d.updated_at,
         array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
        FROM documents d
+       LEFT JOIN folder_permissions fp ON d.folder_id = fp.folder_id AND fp.user_id = $2
        LEFT JOIN document_labels dl ON d.id = dl.document_id
        LEFT JOIN labels l ON dl.label_id = l.id
-       WHERE d.folder_id = $1 AND d.owner_id = $2 AND (d.title ILIKE $3 OR d.extracted_content ILIKE $3)
+       WHERE d.folder_id = $1 AND (d.owner_id = $2 OR fp.user_id = $2) AND (d.title ILIKE $3 OR d.extracted_content ILIKE $3)
        GROUP BY d.id, d.title, d.file_name, d.file_path, d.created_at, d.updated_at
        ORDER BY d.updated_at DESC
        LIMIT $4 OFFSET $5`,

@@ -76,22 +76,15 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      {/* Left Panel - Industrial Background Image */}
+      {/* Left Panel - Background Image */}
       <div
-        className="hidden lg:flex items-center justify-center bg-gradient-to-br from-orange-500 via-red-500 to-purple-600 relative overflow-hidden"
+        className="hidden lg:block relative overflow-hidden"
         style={{
-          backgroundImage: 'linear-gradient(rgba(249, 115, 22, 0.3), rgba(220, 38, 38, 0.3)), url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1440 800\'%3E%3Cpath fill=\'%23000\' fill-opacity=\'0.1\' d=\'M0,320L48,314.7C96,309,192,299,288,293.3C384,288,480,288,576,293.3C672,299,768,309,864,309.3C960,309,1056,299,1152,266.7C1248,235,1344,181,1392,154.7L1440,128L1440,800L1392,800C1344,800,1248,800,1152,800C1056,800,960,800,864,800C768,800,672,800,576,800C480,800,384,800,288,800C192,800,96,800,48,800L0,800Z\'%3E%3C/path%3E%3C/svg%3E")',
+          backgroundImage: 'url("/pdu-image.jpg")',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
       >
-        <div className="text-white text-center px-12 z-10">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Parama Data Unit</h1>
-          <p className="text-lg sm:text-xl opacity-90">Document Management System</p>
-          <div className="mt-8 text-sm opacity-75">
-            Secure, efficient, and intelligent document management
-          </div>
-        </div>
       </div>
 
       {/* Right Panel - Login Form */}

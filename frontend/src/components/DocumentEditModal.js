@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { XMarkIcon, PencilIcon, DocumentIcon } from '@heroicons/react/24/outline';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function DocumentEditModal({ document, isOpen, onClose, onUpdate }) {
   const { api } = useAuth();
@@ -25,13 +26,16 @@ export default function DocumentEditModal({ document, isOpen, onClose, onUpdate 
       });
 
       if (response.data.success) {
+        showSuccess('Document updated successfully');
         if (onUpdate) onUpdate();
         onClose();
-        alert('Document updated successfully');
       }
     } catch (error) {
-      console.error('Error updating document:', error);
-      alert(error.response?.data?.message || 'Failed to update document');
+      // Only log unexpected errors (not validation errors)
+      if (!error.response || error.response.status >= 500) {
+        console.error('Error updating document:', error);
+      }
+      showError(error.response?.data?.message || 'Failed to update document');
     } finally {
       setUpdating(false);
     }

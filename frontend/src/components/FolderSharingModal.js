@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { XMarkIcon, ShareIcon, UserIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }) {
   const { api } = useAuth();
@@ -66,7 +67,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
       }
     } catch (error) {
       console.error('Error fetching permissions:', error);
-      alert('Failed to load sharing permissions');
+      showError('Failed to load sharing permissions');
     } finally {
       setLoading(false);
     }
@@ -99,16 +100,16 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
   // Filter users yang belum memiliki akses (dengan defensive check)
   const availableUsers = Array.isArray(allUsers)
     ? allUsers.filter(user =>
-        !permissions.some(perm => perm.user && perm.user.id === user.id)
-      )
+      !permissions.some(perm => perm.user && perm.user.id === user.id)
+    )
     : [];
 
   // Filter users berdasarkan search query (dengan defensive check)
   const filteredUsers = Array.isArray(availableUsers)
     ? availableUsers.filter(user =>
-        (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
+      (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
     : [];
 
   // Get selected user (dengan defensive check)
@@ -123,7 +124,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
       ? allUsers.find(user => user.id === parseInt(selectedUserId))
       : null;
     if (!userToShare) {
-      alert('Selected user not found');
+      showError('Selected user not found');
       return;
     }
 
@@ -135,6 +136,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
       });
 
       if (response.data.success) {
+        showSuccess('Folder shared successfully');
         // Refresh permissions list
         await fetchPermissions();
         setSelectedUserId('');
@@ -146,7 +148,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
       }
     } catch (error) {
       console.error('Error sharing folder:', error);
-      alert(error.response?.data?.message || 'Failed to share folder');
+      showError(error.response?.data?.message || 'Failed to share folder');
     } finally {
       setSharing(false);
     }
@@ -159,18 +161,19 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
       });
 
       if (response.data.success) {
+        showSuccess('Permission updated successfully');
         // Update local state
-        setPermissions(permissions.map(perm => 
-          perm.user.id === userId 
+        setPermissions(permissions.map(perm =>
+          perm.user.id === userId
             ? { ...perm, permissionLevel: newPermission }
             : perm
         ));
-        
+
         if (onUpdate) onUpdate();
       }
     } catch (error) {
       console.error('Error updating permission:', error);
-      alert('Failed to update permission');
+      showError('Failed to update permission');
     }
   };
 
@@ -181,14 +184,15 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
       const response = await api.delete(`/folders/${folder.id}/permissions/${userId}`);
 
       if (response.data.success) {
+        showSuccess('Access revoked successfully');
         // Remove from local state
         setPermissions(permissions.filter(perm => perm.user.id !== userId));
-        
+
         if (onUpdate) onUpdate();
       }
     } catch (error) {
       console.error('Error revoking access:', error);
-      alert('Failed to revoke access');
+      showError('Failed to revoke access');
     }
   };
 
@@ -348,7 +352,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
           <label className="block text-sm font-medium text-gray-700 mb-3">
             People with access ({permissions.length})
           </label>
-          
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
@@ -375,7 +379,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <select
                       value={permission.permissionLevel}
@@ -385,7 +389,7 @@ export default function FolderSharingModal({ folder, isOpen, onClose, onUpdate }
                       <option value="viewer">Viewer</option>
                       <option value="editor">Editor</option>
                     </select>
-                    
+
                     <button
                       onClick={() => revokeAccess(permission.user.id)}
                       className="p-1 rounded hover:bg-red-50 transition-colors"

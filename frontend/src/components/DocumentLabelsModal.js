@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  XMarkIcon, 
-  TagIcon, 
+import {
+  XMarkIcon,
+  TagIcon,
   PlusIcon,
   TrashIcon,
   MagnifyingGlassIcon,
   SwatchIcon
 } from '@heroicons/react/24/outline';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdate }) {
   const { api } = useAuth();
@@ -22,7 +23,7 @@ export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdat
   const [newLabelColor, setNewLabelColor] = useState('#3B82F6');
 
   const predefinedColors = [
-    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
     '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
     '#F97316', '#6366F1', '#14B8A6', '#F43F5E'
   ];
@@ -75,13 +76,14 @@ export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdat
         setNewLabelName('');
         setNewLabelColor('#3B82F6');
         setShowCreateLabel(false);
-        
+        showSuccess('Label created successfully');
+
         // Auto-assign the new label to the document
         await assignLabelToDocument(newLabel.id);
       }
     } catch (error) {
       console.error('Error creating label:', error);
-      alert(error.response?.data?.message || 'Failed to create label');
+      showError(error.response?.data?.message || 'Failed to create label');
     }
   };
 
@@ -97,12 +99,13 @@ export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdat
         const label = allLabels.find(l => l.id === labelId);
         if (label && !documentLabels.some(l => l.id === labelId)) {
           setDocumentLabels([...documentLabels, label]);
+          showSuccess('Label assigned successfully');
           if (onUpdate) onUpdate();
         }
       }
     } catch (error) {
       console.error('Error assigning label:', error);
-      alert(error.response?.data?.message || 'Failed to assign label');
+      showError(error.response?.data?.message || 'Failed to assign label');
     }
   };
 
@@ -112,11 +115,12 @@ export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdat
 
       if (response.data.success) {
         setDocumentLabels(documentLabels.filter(l => l.id !== labelObj.id));
+        showSuccess('Label removed successfully');
         if (onUpdate) onUpdate();
       }
     } catch (error) {
       console.error('Error removing label:', error);
-      alert(error.response?.data?.message || 'Failed to remove label');
+      showError(error.response?.data?.message || 'Failed to remove label');
     }
   };
 
@@ -221,7 +225,7 @@ export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdat
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                       onKeyPress={(e) => e.key === 'Enter' && createLabel()}
                     />
-                    
+
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-2">Color</label>
                       <div className="flex items-center space-x-2">
@@ -230,9 +234,8 @@ export default function DocumentLabelsModal({ document, isOpen, onClose, onUpdat
                             <button
                               key={color}
                               onClick={() => setNewLabelColor(color)}
-                              className={`w-6 h-6 rounded-full border-2 transition-all ${
-                                newLabelColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
-                              }`}
+                              className={`w-6 h-6 rounded-full border-2 transition-all ${newLabelColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
+                                }`}
                               style={{ backgroundColor: color }}
                             />
                           ))}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function FolderEditModal({ folder, isOpen, onClose, onUpdate }) {
   const { api } = useAuth();
@@ -25,12 +26,16 @@ export default function FolderEditModal({ folder, isOpen, onClose, onUpdate }) {
       });
 
       if (response.data.success) {
+        showSuccess('Folder renamed successfully');
         if (onUpdate) onUpdate();
         onClose();
       }
     } catch (error) {
-      console.error('Error updating folder:', error);
-      alert(error.response?.data?.message || 'Failed to update folder');
+      // Only log unexpected errors (not validation errors like 409)
+      if (!error.response || error.response.status >= 500) {
+        console.error('Error updating folder:', error);
+      }
+      showError(error.response?.data?.message || 'Failed to update folder');
     } finally {
       setUpdating(false);
     }

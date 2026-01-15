@@ -17,7 +17,7 @@ module.exports = {
   // Default model for different tasks
   defaultModels: {
     extraction: 'gemini-2.5-flash-lite',     // Metadata extraction
-    search: 'gemini-2.5-flash-lite',         // RAG search
+    search: 'gemini-2.5-flash',              // RAG search (higher quota)
     classification: 'gemini-2.5-flash-lite'  // Document classification
   },
 

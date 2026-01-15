@@ -4,6 +4,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
 const WordExtractor = require('word-extractor');
+const officeParser = require('officeparser');
 
 // Enhanced text extraction for different file types
 const extractTextContent = async (filePath, fileType) => {
@@ -53,9 +54,11 @@ const extractTextContent = async (filePath, fileType) => {
       case 'gif':
         return `Image file: ${fileType.toUpperCase()}. No text content available.`;
 
-      // PowerPoint and other formats
+      // PowerPoint formats
       case 'pptx':
-        return `PowerPoint file. Content extraction not implemented yet.`;
+      case 'ppt':
+        const pptText = await officeParser.parseOfficeAsync(filePath);
+        return pptText || 'No text content found in PowerPoint file';
 
       default:
         return `File type: ${fileType}. Content extraction not supported.`;
@@ -87,7 +90,7 @@ const getFileInfo = (filePath, originalName, fileSize) => {
     type: fileType,
     size: fileSize,
     sizeFormatted: formatFileSize(fileSize),
-    canExtractText: ['txt', 'json', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv'].includes(fileType)
+    canExtractText: ['txt', 'pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv', 'pptx', 'ppt'].includes(fileType)
   };
   return stats;
 };

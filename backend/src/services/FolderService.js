@@ -27,7 +27,7 @@ class FolderService extends BaseService {
     }
 
     const duplicate = await pool.query(
-      'SELECT id FROM folders WHERE name = $1 AND parent_id = $2 AND owner_id = $3',
+      'SELECT id FROM folders WHERE LOWER(name) = LOWER($1) AND parent_id = $2 AND owner_id = $3',
       [name.trim(), parentId || null, userId]
     );
 
@@ -148,10 +148,30 @@ class FolderService extends BaseService {
 
     const folder = await this.findById(folderId);
 
-    const duplicate = await pool.query(
-      'SELECT id FROM folders WHERE name = $1 AND parent_id = $2 AND owner_id = $3 AND id != $4',
-      [name.trim(), folder.parent_id, userId, folderId]
-    );
+    // Check for duplicate folder names in the same parent folder
+    // Include both owned folders and folders the user has access to via permissions
+    let duplicateQuery;
+    let duplicateParams;
+
+    if (folder.parent_id) {
+      duplicateQuery = `SELECT f.id FROM folders f
+         LEFT JOIN folder_permissions fp ON f.id = fp.folder_id AND fp.user_id = $4
+         WHERE LOWER(f.name) = LOWER($1) 
+           AND f.parent_id = $2
+           AND f.id != $3
+           AND (f.owner_id = $4 OR fp.user_id = $4)`;
+      duplicateParams = [name.trim(), folder.parent_id, folderId, userId];
+    } else {
+      duplicateQuery = `SELECT f.id FROM folders f
+         LEFT JOIN folder_permissions fp ON f.id = fp.folder_id AND fp.user_id = $3
+         WHERE LOWER(f.name) = LOWER($1) 
+           AND f.parent_id IS NULL
+           AND f.id != $2
+           AND (f.owner_id = $3 OR fp.user_id = $3)`;
+      duplicateParams = [name.trim(), folderId, userId];
+    }
+
+    const duplicate = await pool.query(duplicateQuery, duplicateParams);
 
     if (duplicate.rows.length > 0) {
       throw new Error('Folder with this name already exists in this location');
@@ -387,7 +407,7 @@ class FolderService extends BaseService {
       // Check for naming conflicts
       while (true) {
         const duplicate = await client.query(
-          'SELECT id FROM folders WHERE name = $1 AND parent_id = $2 AND owner_id = $3',
+          'SELECT id FROM folders WHERE LOWER(name) = LOWER($1) AND parent_id = $2 AND owner_id = $3',
           [newFolderName, newParentId || null, userId]
         );
 

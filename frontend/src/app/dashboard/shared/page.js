@@ -28,6 +28,7 @@ import DocumentEditModal from '@/components/DocumentEditModal';
 import DocumentLabelsModal from '@/components/DocumentLabelsModal';
 import SearchBar from '@/components/SearchBar';
 import { useRouter } from 'next/navigation';
+import { showSuccess, showError } from '@/utils/toast';
 
 export default function SharedPage() {
   const { api } = useAuth();
@@ -177,13 +178,13 @@ export default function SharedPage() {
       const response = await api.post(`/folders/${folder.id}/copy`, {});
 
       if (response.data.success) {
-        alert(`Folder "${folder.name}" has been copied successfully!`);
+        showSuccess(`Folder "${folder.name}" has been copied successfully!`);
         // Optionally, redirect to My Files to see the copied folder
         router.push('/dashboard/files');
       }
     } catch (error) {
       console.error('Error copying folder:', error);
-      alert(error.response?.data?.message || 'Failed to copy folder');
+      showError(error.response?.data?.message || 'Failed to copy folder');
     }
   };
 
@@ -309,7 +310,7 @@ export default function SharedPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);
-      alert('Failed to download document');
+      showError('Failed to download document');
     }
   };
 
@@ -468,8 +469,8 @@ export default function SharedPage() {
             <button
               onClick={() => setActiveTab('folders')}
               className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'folders'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Folders ({stats.totalFolders})
@@ -477,8 +478,8 @@ export default function SharedPage() {
             <button
               onClick={() => setActiveTab('documents')}
               className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'documents'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               File ({stats.totalDocuments})

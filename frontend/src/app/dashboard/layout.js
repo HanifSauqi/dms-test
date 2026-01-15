@@ -165,71 +165,61 @@ export default function DashboardLayout({ children }) {
           <div className="space-y-1">
             <Link
               href="/dashboard"
-              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                isActive('/dashboard') && pathname === '/dashboard'
+              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard') && pathname === '/dashboard'
                   ? 'text-orange-600 bg-red-100'
                   : 'text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
-              <HomeIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                isActive('/dashboard') && pathname === '/dashboard' ? 'text-orange-600' : 'text-gray-500'
-              }`} />
+              <HomeIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard') && pathname === '/dashboard' ? 'text-orange-600' : 'text-gray-500'
+                }`} />
               Home
             </Link>
 
             <Link
               href="/dashboard/files"
-              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                isActive('/dashboard/files')
+              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/files')
                   ? 'text-orange-600 bg-red-100'
                   : 'text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
-              <FolderIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                isActive('/dashboard/files') ? 'text-orange-600' : 'text-gray-500'
-              }`} />
+              <FolderIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/files') ? 'text-orange-600' : 'text-gray-500'
+                }`} />
               My Files
             </Link>
 
             <Link
               href="/dashboard/shared"
-              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                isActive('/dashboard/shared')
+              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/shared')
                   ? 'text-orange-600 bg-red-100'
                   : 'text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
-              <UserIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                isActive('/dashboard/shared') ? 'text-orange-600' : 'text-gray-500'
-              }`} />
+              <UserIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/shared') ? 'text-orange-600' : 'text-gray-500'
+                }`} />
               Shared With Me
             </Link>
 
             <Link
               href="/dashboard/labels"
-              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                isActive('/dashboard/labels')
+              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/labels')
                   ? 'text-orange-600 bg-red-100'
                   : 'text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
-              <TagIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                isActive('/dashboard/labels') ? 'text-orange-600' : 'text-gray-500'
-              }`} />
+              <TagIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/labels') ? 'text-orange-600' : 'text-gray-500'
+                }`} />
               Labels
             </Link>
 
             <Link
               href="/dashboard/settings"
-              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                isActive('/dashboard/settings')
+              className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/settings')
                   ? 'text-orange-600 bg-red-100'
                   : 'text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
-              <CogIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                isActive('/dashboard/settings') ? 'text-orange-600' : 'text-gray-500'
-              }`} />
+              <CogIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/settings') ? 'text-orange-600' : 'text-gray-500'
+                }`} />
               Settings
             </Link>
 
@@ -238,29 +228,25 @@ export default function DashboardLayout({ children }) {
               <>
                 <Link
                   href="/dashboard/users"
-                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                    isActive('/dashboard/users')
+                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/users')
                       ? 'text-orange-600 bg-red-100'
                       : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
-                  <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                    isActive('/dashboard/users') ? 'text-orange-600' : 'text-gray-500'
-                  }`} />
+                  <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/users') ? 'text-orange-600' : 'text-gray-500'
+                    }`} />
                   User Management
                 </Link>
 
                 <Link
                   href="/dashboard/trash"
-                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-                    isActive('/dashboard/trash')
+                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/trash')
                       ? 'text-orange-600 bg-red-100'
                       : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
-                  <ArchiveBoxIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                    isActive('/dashboard/trash') ? 'text-orange-600' : 'text-gray-500'
-                  }`} />
+                  <ArchiveBoxIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/trash') ? 'text-orange-600' : 'text-gray-500'
+                    }`} />
                   Trash
                 </Link>
               </>
@@ -269,54 +255,54 @@ export default function DashboardLayout({ children }) {
         </nav>
       </div>
 
-{/* Main Content Area */}
-<div className="flex-1 flex flex-col">
-  {/* Top Header - User Profile with Dropdown */}
-  <div className="bg-transparent flex items-center gap-2 sm:gap-4 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-7 border-b border-gray-200">
-    {/* Mobile Menu Button */}
-    <button
-      onClick={() => setIsSidebarOpen(true)}
-      className="lg:hidden flex-shrink-0 p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
-      aria-label="Open navigation menu"
-    >
-      <Bars3Icon className="h-6 w-6" />
-    </button>
-
-    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex-1 truncate min-w-0">
-      Dashboard
-    </h1>
-
-    {/* Profile Dropdown */}
-    <div className="relative flex-shrink-0" ref={dropdownRef}>
-      <button
-        onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-        className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
-      >
-        <UserCircleIcon className="h-12 w-12 text-gray-600" />
-      </button>
-
-      {/* Dropdown Menu */}
-      {showProfileDropdown && (
-        <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header - User Profile with Dropdown */}
+        <div className="bg-transparent flex items-center gap-2 sm:gap-4 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-7">
+          {/* Mobile Menu Button */}
           <button
-            onClick={async () => {
-              setShowProfileDropdown(false);
-              await logout();
-              router.push('/auth/login');
-            }}
-            className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-orange-50 flex items-center transition-colors"
+            onClick={() => setIsSidebarOpen(true)}
+            className="lg:hidden flex-shrink-0 p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
+            aria-label="Open navigation menu"
           >
-            <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2 text-orange-500" />
-            Logout
+            <Bars3Icon className="h-6 w-6" />
           </button>
+
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex-1 truncate min-w-0">
+            Dashboard
+          </h1>
+
+          {/* Profile Dropdown */}
+          <div className="relative flex-shrink-0" ref={dropdownRef}>
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
+            >
+              <UserCircleIcon className="h-12 w-12 text-gray-600" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setShowProfileDropdown(false);
+                    await logout();
+                    router.push('/auth/login');
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-orange-50 flex items-center transition-colors"
+                >
+                  <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2 text-orange-500" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </div>
-  </div>
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto bg-white">
