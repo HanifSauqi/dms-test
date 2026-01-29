@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Database Service (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: dms_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1234}
+      POSTGRES_DB: ${DB_NAME:-dms_db_test_3}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - dms_network
+
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+    container_name: dms_backend
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-1234}
+      - DB_NAME=${DB_NAME:-dms_db_test_3}
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - LLM_SERVICE_URL=${LLM_SERVICE_URL:-http://host.docker.internal:11434}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - dms_network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+    container_name: dms_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - dms_network
+
+networks:
+  dms_network:
+    driver: bridge
+
+volumes:
+  db_data:

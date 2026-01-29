@@ -166,8 +166,8 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard"
               className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard') && pathname === '/dashboard'
-                  ? 'text-orange-600 bg-red-100'
-                  : 'text-gray-700 hover:bg-gray-50'
+                ? 'text-orange-600 bg-red-100'
+                : 'text-gray-700 hover:bg-gray-50'
                 }`}
             >
               <HomeIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard') && pathname === '/dashboard' ? 'text-orange-600' : 'text-gray-500'
@@ -178,8 +178,8 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard/files"
               className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/files')
-                  ? 'text-orange-600 bg-red-100'
-                  : 'text-gray-700 hover:bg-gray-50'
+                ? 'text-orange-600 bg-red-100'
+                : 'text-gray-700 hover:bg-gray-50'
                 }`}
             >
               <FolderIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/files') ? 'text-orange-600' : 'text-gray-500'
@@ -190,8 +190,8 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard/shared"
               className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/shared')
-                  ? 'text-orange-600 bg-red-100'
-                  : 'text-gray-700 hover:bg-gray-50'
+                ? 'text-orange-600 bg-red-100'
+                : 'text-gray-700 hover:bg-gray-50'
                 }`}
             >
               <UserIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/shared') ? 'text-orange-600' : 'text-gray-500'
@@ -202,8 +202,8 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard/labels"
               className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/labels')
-                  ? 'text-orange-600 bg-red-100'
-                  : 'text-gray-700 hover:bg-gray-50'
+                ? 'text-orange-600 bg-red-100'
+                : 'text-gray-700 hover:bg-gray-50'
                 }`}
             >
               <TagIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/labels') ? 'text-orange-600' : 'text-gray-500'
@@ -214,8 +214,8 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard/settings"
               className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/settings')
-                  ? 'text-orange-600 bg-red-100'
-                  : 'text-gray-700 hover:bg-gray-50'
+                ? 'text-orange-600 bg-red-100'
+                : 'text-gray-700 hover:bg-gray-50'
                 }`}
             >
               <CogIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/settings') ? 'text-orange-600' : 'text-gray-500'
@@ -229,8 +229,8 @@ export default function DashboardLayout({ children }) {
                 <Link
                   href="/dashboard/users"
                   className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/users')
-                      ? 'text-orange-600 bg-red-100'
-                      : 'text-gray-700 hover:bg-gray-50'
+                    ? 'text-orange-600 bg-red-100'
+                    : 'text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                   <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/users') ? 'text-orange-600' : 'text-gray-500'
@@ -241,13 +241,25 @@ export default function DashboardLayout({ children }) {
                 <Link
                   href="/dashboard/trash"
                   className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/trash')
-                      ? 'text-orange-600 bg-red-100'
-                      : 'text-gray-700 hover:bg-gray-50'
+                    ? 'text-orange-600 bg-red-100'
+                    : 'text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                   <ArchiveBoxIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/trash') ? 'text-orange-600' : 'text-gray-500'
                     }`} />
                   Trash
+                </Link>
+
+                <Link
+                  href="/dashboard/admin/settings/ai"
+                  className={`group flex items-center px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive('/dashboard/admin/settings/ai')
+                    ? 'text-orange-600 bg-red-100'
+                    : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                >
+                  <CogIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive('/dashboard/admin/settings/ai') ? 'text-orange-600' : 'text-gray-500'
+                    }`} />
+                  Global AI Config
                 </Link>
               </>
             )}

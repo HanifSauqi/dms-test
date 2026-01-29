@@ -85,6 +85,25 @@ const requiredEnvVars = {
       }
       return null;
     }
+  },
+
+  // AI Configuration
+  AI_PROVIDER: {
+    required: false,
+    default: 'gemini',
+    description: 'AI provider to use (gemini or ollama)',
+    validate: (value) => {
+      const validProviders = ['gemini', 'ollama'];
+      if (value && !validProviders.includes(value)) {
+        return `AI_PROVIDER must be one of: ${validProviders.join(', ')}`;
+      }
+      return null;
+    }
+  },
+  LLM_SERVICE_URL: {
+    required: false,
+    default: 'http://localhost:3005',
+    description: 'URL for the standalone LLM service'
   }
 };
 

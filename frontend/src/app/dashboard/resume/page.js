@@ -16,6 +16,8 @@ import {
 import FileViewerModal from '@/components/FileViewerModal';
 import DocumentDetailsModal from '@/components/DocumentDetailsModal';
 import JSZip from 'jszip';
+import { getAIPreferences } from '@/utils/aiPreferences';
+import { toast } from 'react-hot-toast';
 
 export default function ResumePage() {
   const { api } = useAuth();
@@ -82,21 +84,51 @@ export default function ResumePage() {
 
       if (searchQuery.trim()) {
         try {
+          const prefs = getAIPreferences();
+          const headers = {
+            'x-ai-provider': prefs.provider,
+            'x-gemini-api-key': prefs.geminiKey
+          };
+
           // RAG Search with Gemini AI (only on resume page) - correct path
-          const response = await api.get(`/documents/rag-search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`);
+          const response = await api.get(`/documents/rag-search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`, {
+            headers
+          });
+
           if (response.data.success) {
             results = response.data.data.results || [];
+
+            // Toast feedback
+            const { aiPowered, searchMethod, searchInfo } = response.data.data;
+
+            if (aiPowered) {
+              toast.success(`Found ${results.length} documents using Gemini AI`);
+            } else if (searchMethod === 'keyword') {
+              toast((t) => (
+                <span>
+                  ⚠️ <b>AI Search Unavailable</b>
+                  <br />
+                  Falling back to keyword search.
+                  <br />
+                  <span className="text-xs">{searchInfo || 'Check your API Key quota.'}</span>
+                </span>
+              ), { icon: '⚠️', duration: 4000 });
+            }
           }
         } catch (ragError) {
           console.warn('⚠️ RAG search failed, falling back to keyword search:', ragError.message);
+          toast.error('AI Search failed completely. Trying keywords...');
+
           // Fallback to simple search if RAG fails
           try {
             const fallbackResponse = await api.get(`/documents/search?q=${encodeURIComponent(searchQuery.trim())}`);
             if (fallbackResponse.data.success) {
               results = fallbackResponse.data.data.documents || [];
+              toast.success(`Found ${results.length} documents via keyword fallback`);
             }
           } catch (fallbackError) {
             console.error('❌ Fallback search also failed:', fallbackError);
+            toast.error('Search failed. Please try again.');
           }
         }
       }
@@ -107,6 +139,7 @@ export default function ResumePage() {
     } catch (err) {
       console.error('Error searching:', err);
       setFilteredDocuments([]);
+      toast.error('An error occurred during search');
     } finally {
       setSearching(false);
     }
@@ -122,10 +155,34 @@ export default function ResumePage() {
       // If there's a search query, use search with fallback
       if (searchQuery.trim()) {
         try {
+          const prefs = getAIPreferences();
+          const headers = {
+            'x-ai-provider': prefs.provider,
+            'x-gemini-api-key': prefs.geminiKey
+          };
+
           // RAG search with Gemini AI (only on resume page) - correct path
-          const response = await api.get(`/documents/rag-search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`);
+          const response = await api.get(`/documents/rag-search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`, {
+            headers
+          });
           if (response.data.success) {
             results = response.data.data.results || [];
+
+            const { aiPowered, searchMethod, errorType } = response.data.data;
+
+            // Priority: Check specific AI errors
+            if (errorType) {
+              if (errorType === 'expired_key') toast.error("Gemini API Key Expired! Switching to Keyword.", { duration: 5000 });
+              else if (errorType === 'quota_exceeded') toast.error("Gemini Quota Exceeded! Switching to Keyword.", { duration: 5000 });
+              else if (errorType === 'invalid_key') toast.error("Gemini API Key Invalid! Switching to Keyword.", { duration: 5000 });
+              else toast.error("AI Error. Switching to Keyword.", { duration: 4000 });
+            }
+            else if (aiPowered) {
+              // Success with AI
+            }
+            else if (searchMethod === 'keyword') {
+              toast('Using keyword fallback', { icon: '⚠️' });
+            }
           }
         } catch (ragError) {
           console.warn('⚠️ RAG search failed, falling back to simple search');
@@ -143,6 +200,7 @@ export default function ResumePage() {
         // No search query - use all documents as base for filtering
         results = [...documents];
       }
+
 
       // Then apply filters to the results
       results = applyFilters(results);
@@ -568,8 +626,8 @@ export default function ResumePage() {
                         {/* Similarity Badge - only show if semantic search was used */}
                         {document.similarity !== undefined && (
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${document.similarity >= 70 ? 'bg-green-100 text-green-700' :
-                              document.similarity >= 40 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-gray-100 text-gray-600'
+                            document.similarity >= 40 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-600'
                             }`}>
                             {document.similarity}% match
                           </span>

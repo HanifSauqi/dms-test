@@ -16,6 +16,15 @@ const settingsMenuItems = [
     iconBgColor: 'bg-gradient-to-br from-orange-400 to-orange-600',
     hoverColor: 'hover:border-orange-300 hover:shadow-orange-100',
   },
+  {
+    id: 'ai-provider',
+    title: 'AI Provider',
+    description: 'Switch between Cloud AI (Gemini) and Local AI (Ollama)',
+    icon: CpuChipIcon,
+    href: '/dashboard/settings/ai-provider',
+    iconBgColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
+    hoverColor: 'hover:border-indigo-300 hover:shadow-indigo-100',
+  },
   // Add more settings items here in the future
   // {
   //   id: 'general',

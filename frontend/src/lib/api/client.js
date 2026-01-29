@@ -9,14 +9,22 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor - Add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    // Check if we're in browser environment
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const aiProvider = localStorage.getItem('ai_provider');
+      const geminiKey = localStorage.getItem('gemini_api_key');
+
+      if (aiProvider) {
+        config.headers['x-ai-provider'] = aiProvider;
+      }
+      if (geminiKey) {
+        config.headers['x-gemini-api-key'] = geminiKey;
       }
     }
     return config;
@@ -26,13 +34,11 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle common errors
 apiClient.interceptors.response.use(
   (response) => {
     return response.data;
   },
   (error) => {
-    // Handle common error cases
     if (error.response) {
       const { status, data } = error.response;
 

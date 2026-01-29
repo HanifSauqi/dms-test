@@ -57,6 +57,8 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/labels', labelRoutes);
 app.use('/api/classification', classificationRoutes);
 app.use('/api/reports', reportRoutes);
+const settingsRoutes = require('./routes/settings'); // NEW
+app.use('/api/settings', settingsRoutes); // NEW
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

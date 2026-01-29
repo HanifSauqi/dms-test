@@ -14,7 +14,8 @@ const {
   searchDocuments,
   ragSearchDocuments,
   getDocumentSharedUsers,
-  getRecentDocuments
+  getRecentDocuments,
+  testAIConfig
 } = ctrl;
 
 const { authenticateToken } = require('../middleware/auth');
@@ -27,6 +28,7 @@ router.use(authenticateToken);
 
 // Document operations
 router.post('/upload', upload.array('files', 5), handleUploadError, uploadDocuments);
+router.post('/test-ai-config', testAIConfig); // NEW: Test AI Connection
 router.get('/search', searchDocuments);
 router.get('/rag-search', ragSearchDocuments); // RAG search with Gemini AI (LLM-direct approach)
 router.get('/recent', getRecentDocuments); // Get recent documents with activity tracking

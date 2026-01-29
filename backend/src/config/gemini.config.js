@@ -9,16 +9,16 @@ module.exports = {
 
   // Model Configuration
   models: {
-    flash: 'gemini-2.5-flash-lite',          // Fast, cost-effective, high quota
-    flashThinking: 'gemini-2.5-flash-lite',  // Balanced reasoning
-    pro: 'gemini-2.5-pro-preview-05-06'      // Most capable (for complex tasks)
+    flash: 'gemini-2.5-flash',           // Standard flash model
+    flashLite: 'gemini-2.5-flash-lite',  // Lite version (higher RPD)
+    pro: 'gemini-2.5-pro'                // Most capable
   },
 
   // Default model for different tasks
   defaultModels: {
-    extraction: 'gemini-2.5-flash-lite',     // Metadata extraction
-    search: 'gemini-2.5-flash',              // RAG search (higher quota)
-    classification: 'gemini-2.5-flash-lite'  // Document classification
+    extraction: 'gemini-2.5-flash',      // Metadata extraction
+    search: 'gemini-2.5-flash',          // RAG search
+    classification: 'gemini-2.5-flash'   // Classification
   },
 
   // Request settings
@@ -27,7 +27,7 @@ module.exports = {
   retryDelay: 1000,         // Initial retry delay (ms)
 
   // Content limits
-  maxContentLength: 5000,   // Max content length for processing
+  maxContentLength: 50000,   // Max content length for processing
   maxQueryLength: 500,      // Max query length
 
   // Feature flags

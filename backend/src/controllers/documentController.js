@@ -377,10 +377,17 @@ const ragSearchDocuments = async (req, res) => {
     }
 
     const options = {
-      limit: parseInt(limit)
+      limit: parseInt(limit),
+      aiProvider: req.headers['x-ai-provider'],
+      apiKey: req.headers['x-gemini-api-key']
     };
 
-    const results = await searchService.ragSearch(q, userId, options);
+    const searchResult = await searchService.ragSearch(q, userId, options);
+
+    // Handle both new object format and potential legacy array format (just in case)
+    const results = Array.isArray(searchResult) ? searchResult : (searchResult.results || []);
+    const method = searchResult.method || (Array.isArray(searchResult) ? 'keyword' : 'unknown');
+    const isAiPowered = method === 'ai';
 
     successResponse(res, 'RAG search completed successfully', {
       results: results.map(result => ({
@@ -403,7 +410,10 @@ const ragSearchDocuments = async (req, res) => {
       })),
       query: q,
       totalFound: results.length,
-      aiPowered: true
+      aiPowered: isAiPowered,
+      searchMethod: method,
+      searchInfo: searchResult.info,
+      errorType: searchResult.errorType // NEW: Pass detailed error type
     });
   } catch (error) {
     errorResponse(res, 'Failed to perform RAG search', 500, error.message);
@@ -498,6 +508,44 @@ module.exports = {
         return errorResponse(res, error.message, 404);
       }
       errorResponse(res, 'Failed to retrieve document shared users', 500, error.message);
+    }
+  },
+
+  testAIConfig: async (req, res) => {
+    try {
+      const { provider, apiKey, llmUrl } = req.body;
+      const geminiService = require('../services/geminiService');
+      const ollamaService = require('../services/ollamaService');
+
+      if (provider === 'gemini') {
+        const result = await geminiService.testConnection(apiKey);
+        if (result.success) {
+          return successResponse(res, 'Gemini connection successful');
+        } else {
+          // Manually send response to include errorType
+          // Return 200 instead of 400 to avoid Axios/Console errors on frontend
+          return res.status(200).json({
+            success: false,
+            message: 'Gemini connection failed',
+            error: result.error, // Detailed error message
+            errorType: result.errorType
+          });
+        }
+      }
+
+      if (provider === 'ollama') {
+        // Simple health check for Ollama via service url if provided
+        // But ollamaService reads from env. 
+        // We'll rely on the existing frontend direct check for local ollama, 
+        // as the backend might be in a container preventing localhost access to user's ollama.
+        // If they are on same machine/network, backend can check.
+        // For now, let's just support Gemini backend check.
+        return errorResponse(res, 'Ollama test should be done client-side', 400);
+      }
+
+      return errorResponse(res, 'Invalid provider', 400);
+    } catch (error) {
+      errorResponse(res, 'Test failed', 500, error.message);
     }
   }
 };

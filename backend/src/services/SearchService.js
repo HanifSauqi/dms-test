@@ -2,6 +2,7 @@ const BaseService = require('./BaseService');
 const pool = require('../utils/database');
 const { extractKeywords, calculateKeywordScore } = require('../utils/searchHelpers');
 const geminiService = require('./geminiService');
+const ollamaService = require('./ollamaService');
 
 class SearchService extends BaseService {
   constructor() {
@@ -11,41 +12,33 @@ class SearchService extends BaseService {
   async ragSearch(query, userId, options = {}) {
     const { limit = 50 } = options;
 
-    console.log('\n========== SEARCH REQUEST ==========');
-    console.log('🔍 Query:', query);
-    console.log('👤 User ID:', userId);
-
-    // Get ALL user documents first (no keyword pre-filtering)
     let documents = await this.getAllUserDocuments(userId);
-    console.log('📄 Total documents available:', documents.length);
 
     if (documents.length === 0) {
-      console.log('❌ No documents found for user');
-      console.log('=====================================\n');
-      return [];
+      return { results: [], method: 'none' };
     }
 
-    // Try Gemini AI first
-    if (geminiService.isEnabled()) {
+    const aiProvider = options.aiProvider || process.env.AI_PROVIDER || 'gemini';
+    const aiService = aiProvider === 'ollama' ? ollamaService : geminiService;
+
+    if (aiService.isEnabled() || (aiProvider === 'gemini' && options.apiKey) || aiProvider === 'ollama') {
       try {
-        const results = await this.analyzeWithGemini(query, documents, limit);
-        return results;
+        const result = await this.analyzeWithAI(query, documents, limit, aiService, aiProvider, options);
+        return result;
       } catch (error) {
-        // Gemini failed, fall through to keyword search
-        console.log('\n⚠️  Gemini AI failed, using keyword fallback...');
+        console.log(`\n⚠️  ${aiProvider.toUpperCase()} AI failed, using keyword fallback...`);
       }
     }
 
-    // Fallback: Use keyword search
-    console.log('\n⚠️  SEARCH METHOD: KEYWORD SEARCH (Fallback)');
     const keywords = await extractKeywords(query);
-    console.log('📝 Extracted Keywords:', keywords);
-
     const keywordResults = await this.getKeywordMatchedDocuments(userId, keywords, limit);
-    console.log('📄 Returning', keywordResults.length, 'keyword-matched documents');
-    console.log('=====================================\n');
 
-    return keywordResults.length > 0 ? keywordResults : documents.slice(0, limit);
+    const results = keywordResults.length > 0 ? keywordResults : documents.slice(0, limit);
+    return {
+      results,
+      method: 'keyword',
+      info: 'AI unavailable or failed, used keyword matching'
+    };
   }
 
   async getKeywordMatchedDocuments(userId, keywords, limit) {
@@ -53,7 +46,6 @@ class SearchService extends BaseService {
       return [];
     }
 
-    // Sanitize keywords: remove special characters and limit length
     const sanitizedKeywords = keywords
       .map(kw => String(kw).substring(0, 100).trim())
       .filter(kw => kw.length > 0);
@@ -62,7 +54,6 @@ class SearchService extends BaseService {
       return [];
     }
 
-    // Build parameterized query - safe from SQL injection
     const keywordConditions = sanitizedKeywords
       .map((_, index) => `d.extracted_content ILIKE $${index + 2}`)
       .join(' OR ');
@@ -113,69 +104,44 @@ class SearchService extends BaseService {
     return result.rows;
   }
 
-  async analyzeWithGemini(query, documents, limit) {
-    if (!geminiService.isEnabled()) {
-      console.log('\n⚠️  SEARCH METHOD: KEYWORD SEARCH (Fallback)');
-      console.log('📋 Reason: Gemini API not available or not configured');
-      console.log('📄 Returning', Math.min(documents.length, limit), 'keyword-matched documents');
-      console.log('=====================================\n');
-      return documents.slice(0, limit);
+  async analyzeWithAI(query, documents, limit, aiService, providerName, options = {}) {
+    if (providerName !== 'ollama' && !aiService.isEnabled() && !options.apiKey) {
+      console.log(`⚠️  ${providerName.toUpperCase()} AI not available - Fallback to keyword`);
+      return {
+        results: documents.slice(0, limit),
+        method: 'keyword',
+        info: `${providerName} not configured`
+      };
     }
 
-    console.log('\n🤖 SEARCH METHOD: GEMINI AI (RAG Search)');
-    console.log('📄 Analyzing', documents.length, 'documents with AI...');
-
-    const documentsContext = documents.map((doc, index) => {
-      const preview = doc.extracted_content
-        ? doc.extracted_content.substring(0, 1000)
-        : '';
-
-      return `[${index}] Title: ${doc.title}\nFilename: ${doc.file_name}\nContent Preview: ${preview}`;
-    }).join('\n\n');
-
-    const prompt = `Analyze these documents and find the ones most relevant to the query: "${query}"
-
-${documentsContext}
-
-Return ONLY a JSON array of document indexes (numbers) sorted by relevance, like this:
-[2, 5, 0, 8]
-
-Return ONLY numbers of relevant documents. If none are relevant, return empty array [].
-Maximum ${limit} results.`;
+    // console.log(`🤖 SEARCH METHOD: ${providerName.toUpperCase()} AI (RAG Search)`);
 
     try {
-      // Use the executeWithRetry method from geminiService for reliability
-      const response = await geminiService.executeWithRetry(async () => {
-        return await geminiService.ai.models.generateContent({
-          model: geminiService.config.defaultModels.search,
-          contents: prompt
-        });
-      });
+      // Use the service's built-in RAG search for both Ollama and Gemini
+      // Both services now handle full user document sets (filtered by getAllUserDocuments)
+      const searchDocs = documents;
 
-      const text = response.text;
-      const jsonMatch = text.match(/\[[\d,\s]*\]/);
+      const ragResults = await aiService.ragSearch(query, searchDocs, options);
 
-      if (!jsonMatch) {
-        console.warn('Failed to parse Gemini response, returning all documents');
-        return documents.slice(0, limit);
-      }
+      // Robust ID matching (convert to string to handle int/string mismatches)
+      const matchingIds = (ragResults.matching_files || []).map(f => String(f.id));
 
-      const relevantIndexes = JSON.parse(jsonMatch[0]);
+      const results = documents.filter(doc => matchingIds.includes(String(doc.id))).slice(0, limit);
 
-      const results = relevantIndexes
-        .map(index => documents[index])
-        .filter(doc => doc !== undefined)
-        .slice(0, limit);
-
-      console.log('✅ AI found', results.length, 'relevant documents');
-      console.log('=====================================\n');
-      return results;
+      return {
+        results,
+        method: 'ai',
+        provider: providerName,
+        aiSummary: ragResults.summary,
+        errorType: ragResults.errorType
+      };
     } catch (error) {
-      console.log('\n⚠️  SEARCH METHOD: KEYWORD SEARCH (Fallback)');
-      console.log('📋 Reason: Gemini AI error -', error.message);
-      console.log('📄 Returning', Math.min(documents.length, limit), 'keyword-matched documents');
-      console.log('=====================================\n');
-      return documents.slice(0, limit);
+      console.error(`⚠️  AI Search Error (${providerName}):`, error.message);
+      return {
+        results: documents.slice(0, limit),
+        method: 'keyword',
+        info: `AI error: ${error.message}`
+      };
     }
   }
 

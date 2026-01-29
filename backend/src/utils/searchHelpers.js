@@ -1,4 +1,5 @@
 const geminiService = require('../services/geminiService');
+const ollamaService = require('../services/ollamaService');
 
 function optimizeContent(text) {
   if (!text) return '';
@@ -12,7 +13,10 @@ function optimizeContent(text) {
 
 async function extractNouns(query) {
   try {
-    if (!geminiService.isEnabled()) {
+    const aiProvider = process.env.AI_PROVIDER || 'gemini';
+    const aiService = aiProvider === 'ollama' ? ollamaService : geminiService;
+
+    if (!aiService.isEnabled()) {
       return fallbackExtraction(query);
     }
 
@@ -32,20 +36,33 @@ Output: ["invoice", "bulan"]
 
 Now extract from the query above:`;
 
-    const response = await geminiService.ai.models.generateContent({
-      model: geminiService.config.defaultModels.search,
-      contents: prompt
-    });
+    let nouns = [];
 
-    const text = response.text;
-    const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    if (aiProvider === 'ollama') {
+      const response = await aiService.executeWithRetry(async () => {
+        return await axios.post(`${aiService.baseUrl}/api/analyze`, {
+          prompt,
+          system: "Extract only nouns and numbers as a JSON array.",
+          model: aiService.model
+        });
+      });
+      nouns = response.data.data;
+    } else {
+      const response = await aiService.ai.models.generateContent({
+        model: aiService.config.defaultModels.search,
+        contents: prompt
+      });
+      const text = response.text;
+      const jsonMatch = text.match(/\[[\s\S]*?\]/);
+      if (!jsonMatch) throw new Error('Failed to parse nouns from Gemini');
+      nouns = JSON.parse(jsonMatch[0]);
+    }
 
-    if (!jsonMatch) {
-      console.warn('Failed to parse nouns from Gemini, using fallback');
+    if (!nouns || nouns.length === 0) {
+      console.warn('Failed to parse nouns from AI, using fallback');
       return fallbackExtraction(query);
     }
 
-    const nouns = JSON.parse(jsonMatch[0]);
     return nouns;
 
   } catch (error) {
@@ -63,7 +80,9 @@ function fallbackExtraction(query) {
 }
 
 async function extractKeywords(text) {
-  const nouns = await extractNouns(text);
+  // OPTIMIZATION: Use fallback directly instead of AI to save quota
+  // This saves 1 API call per search (50% reduction in quota usage)
+  const nouns = fallbackExtraction(text);
   return [...new Set(nouns)];
 }
 
